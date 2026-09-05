@@ -20,7 +20,7 @@
 
 ## 📌 Overview
 
-**DealFlow360** is an enterprise-grade sales-ops platform designed to eliminate margin leakage, automate inventory-constrained fulfillment, handle hybrid one-time + subscription billing, and facilitate live customer price negotiations in a secure, isolated portal.
+**DealFlow360** is an enterprise sales-operations engine built to enforce strict discount discipline, eliminate margin leakage, dynamically split inventory across multiple warehouses, manage hybrid (one-time hardware + recurring SaaS) billing, and empower clients with a real-time, isolated negotiation portal.
 
 ```
                   ┌─────────────────────────────────────────────────────────┐
@@ -37,39 +37,35 @@
 
 ## 🏗️ 1. System Architecture
 
-```mermaid
-flowchart TD
-    subgraph Clients ["🖥️ Presentation Layer"]
-        A["🏢 Internal Sales Workspace<br/><i>(React 18 • TypeScript • Tailwind)</i>"]
-        B["🌐 Customer Negotiation Portal<br/><i>(Isolated Magic-Link • Server-side DTO)</i>"]
-    end
+<div align="center">
+  <img src="docs/architecture.svg" alt="DealFlow360 System Architecture" width="100%" />
+</div>
 
-    subgraph Gateway ["⚡ Application Services (FastAPI)"]
-        C["API Gateway & Auth<br/><i>(JWT • RBAC • WebSockets)</i>"]
-    end
+<br/>
 
-    subgraph Engines ["⚙️ Core Business Engines"]
-        E1["🎯 Blended Risk Engine<br/><i>Tier & Category Ceilings</i>"]
-        E2["📦 Greedy Warehouse Splitter<br/><i>Cost-Weighted Inventory Allocator</i>"]
-        E3["💳 Hybrid Billing Engine<br/><i>Shipment Invoicing & Proration Math</i>"]
-        E4["🛡️ Deal Health Scanner<br/><i>Stalled, Anomaly & Slippage Radar</i>"]
-        E5["📜 Immutable Audit Trail<br/><i>Append-Only State Transition Log</i>"]
-    end
+<details>
+<summary><b>🔍 View Text Architecture Breakdown</b></summary>
 
-    subgraph Persistence ["💾 Persistence & Scheduled Workers"]
-        DB[("PostgreSQL / SQLite<br/><i>SQLAlchemy 2.0 Async</i>")]
-        CRON["⏰ Background Scheduler<br/><i>Periodic Deal Health Scan</i>"]
-    end
-
-    A <-->|REST + Live WebSocket| C
-    B <-->|Restricted Magic Token| C
-    C --> Engines
-    Engines --> DB
-    CRON --> E4
+```
+Clients (Internal Workspace / Customer Portal)
+   │  ▲
+   ▼  │  (REST API + Live WebSocket Sync)
+FastAPI Gateway & WebSocket Broker (/api/ws)
+   │
+   ├──► 🎯 1. Blended Risk Engine (Tier & Category Strictest Ceilings)
+   ├──► 📦 2. Greedy Warehouse Splitter (Cost-Weighted Multi-Depot Allocation)
+   ├──► 💳 3. Hybrid Billing Engine (Milestone Invoicing & Proration Math)
+   ├──► 🛡️ 4. Deal Health Scanner (Anomaly, Stalled Deals & Slippage Radar)
+   └──► 📜 5. Immutable Audit Trail (Append-Only SOX/GAAP Compliance)
+   │
+   ▼
+Persistence & Periodic Jobs (PostgreSQL 16 / SQLite + APScheduler)
 ```
 
+</details>
+
 ### 🔒 Strict Customer Portal Isolation
-The customer portal operates on a dedicated route group (`/portal?token=...`) with strict server-side response models (`PortalQuotationOut`). Cost prices, rep margins, internal approval thresholds, and audit notes are stripped **on the backend** and never transmitted over the wire.
+The customer portal operates on a dedicated route group (`/portal?token=...`) with strict server-side response models (`PortalQuotationOut`). Cost prices, internal margins, approval thresholds, and audit notes are stripped **on the backend** and never transmitted over the wire.
 
 ---
 
@@ -78,36 +74,43 @@ The customer portal operates on a dedicated route group (`/portal?token=...`) wi
 ### 🎯 2.1 Blended Discount Risk Scoring
 Evaluates every quote line against the stricter ceiling between customer tier limits and product category rules:
 
-$$\text{Allowed Ceiling} = \min(\text{Tier Ceiling}, \text{Category Ceiling})$$
-
-$$\text{Line Excess} = \max(0, \text{Line Discount} - \text{Allowed Ceiling})$$
-
-$$\text{Max Excess} = \max(\{\text{Line Excess}_i\}), \quad \text{Total Excess} = \sum \text{Line Excess}_i$$
+```math
+\text{Allowed Ceiling} = \min(\text{Tier Ceiling}, \text{Category Ceiling})
+```
+```math
+\text{Line Excess} = \max(0, \text{Line Discount} - \text{Allowed Ceiling})
+```
+```math
+\text{Max Excess} = \max(\text{Line Excesses}), \quad \text{Total Excess} = \sum(\text{Line Excesses})
+```
 
 * 🟢 **NONE (Auto-Approved)**: All lines within allowable limits.
-* 🟡 **MEDIUM (L1 Routing)**: $\text{Max Excess} \le 5\%$ $\rightarrow$ Auto-routes to **Sales Manager**.
-* 🔴 **HIGH (L2 Routing)**: $\text{Max Excess} > 5\%$ or $\text{Total Excess} > 8\%$ $\rightarrow$ Escalates to **Sales Manager + Finance VP**.
+* 🟡 **MEDIUM (L1 Routing)**: Max Excess $\le 5\%$ $\rightarrow$ Auto-routes to **Sales Manager**.
+* 🔴 **HIGH (L2 Routing)**: Max Excess $> 5\%$ or Total Excess $> 8\%$ $\rightarrow$ Escalates to **Sales Manager + Finance VP**.
 
 ---
 
 ### 📦 2.2 Cost-Weighted Greedy Multi-Warehouse Split
-Fulfills orders across distributed warehouses while minimizing courier freight costs:
+Fulfills physical hardware orders across distributed depots while minimizing courier freight costs:
 
 1. **Single-Depot Pass**: Checks active depots sorted by `shipping_cost_weight ASC`. If any single warehouse can fulfill 100% of physical units, the order is fulfilled in **1 shipment** to minimize freight.
-2. **Greedy Multi-Depot Pass**: If no single warehouse has sufficient stock, the engine greedily draws available inventory $(\text{qty\_available} - \text{qty\_reserved})$ from the cheapest depot first.
+2. **Greedy Multi-Depot Pass**: If no single warehouse has sufficient stock, the engine greedily draws available inventory (`qty_available - qty_reserved`) from the cheapest depot first.
 3. **Backorder Tracking**: Any shortfall is cleanly allocated to `BackorderLine` with one-click backorder consolidation upon replenishment.
 
 ---
 
 ### 💳 2.3 Hybrid Billing & Mid-Cycle Proration
-* **Milestone Rule**: Physical hardware is strictly invoiced **upon dispatch**, preventing billing disputes on unfulfilled orders.
+* **Milestone Invoicing**: Physical hardware is strictly invoiced **upon dispatch**, preventing billing disputes on unfulfilled orders.
 * **Mid-Cycle Proration Math**: When subscription seats or tiers change mid-period:
 
-$$\text{Daily Rate} = \frac{\text{Plan Price}}{\text{Cycle Days}}$$
+```math
+\text{Daily Rate} = \frac{\text{Plan Price}}{\text{Cycle Days}}
+```
+```math
+\Delta\text{Proration} = (\text{New Daily Rate} - \text{Old Daily Rate}) \times \text{Remaining Days}
+```
 
-$$\Delta_{\text{Proration}} = (\text{Daily Rate}_{\text{new}} - \text{Daily Rate}_{\text{old}}) \times \text{Days}_{\text{remaining}}$$
-
-Positive delta generates an incremental invoice charge; negative delta issues a customer credit note.
+Positive delta generates an incremental invoice charge; negative delta issues a customer credit balance.
 
 ---
 
@@ -214,6 +217,8 @@ tests/test_quick_flow.py::test_step_8_payment_and_invoice_update PASSED  [100%]
 
 ```
 DealFlow360/
+├── docs/
+│   └── architecture.svg        # Pixel-perfect vector system architecture diagram
 ├── backend/
 │   ├── alembic/                # Versioned SQL migrations
 │   ├── app/
