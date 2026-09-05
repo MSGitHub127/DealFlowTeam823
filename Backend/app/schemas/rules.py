@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import List, Optional
 
 class DiscountTierConfigBase(BaseModel):
@@ -11,8 +11,7 @@ class DiscountTierConfigCreate(DiscountTierConfigBase):
 class DiscountTierConfigOut(DiscountTierConfigBase):
     id: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CategoryDiscountConfigBase(BaseModel):
     category: str
@@ -24,8 +23,7 @@ class CategoryDiscountConfigCreate(CategoryDiscountConfigBase):
 class CategoryDiscountConfigOut(CategoryDiscountConfigBase):
     id: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ApprovalRuleBase(BaseModel):
     name: str
@@ -42,8 +40,7 @@ class ApprovalRuleCreate(ApprovalRuleBase):
 class ApprovalRuleOut(ApprovalRuleBase):
     id: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UpsellRuleBase(BaseModel):
     primary_product_id: str
@@ -61,5 +58,4 @@ class UpsellRuleOut(UpsellRuleBase):
     primary_product_name: Optional[str] = None
     suggested_product_name: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

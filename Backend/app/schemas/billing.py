@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime, date
 
@@ -17,8 +17,7 @@ class SubscriptionPlanOut(SubscriptionPlanBase):
     id: str
     is_active: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class SubscriptionOut(BaseModel):
     id: str
@@ -38,8 +37,7 @@ class SubscriptionOut(BaseModel):
     next_bill_date: date
     cancelled_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ProrationCalcResponse(BaseModel):
     subscription_id: str
@@ -60,8 +58,7 @@ class InvoiceLineOut(BaseModel):
     line_total: float
     is_recurring: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class PaymentCreate(BaseModel):
     amount: float
@@ -78,8 +75,7 @@ class PaymentOut(BaseModel):
     notes: Optional[str] = None
     paid_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class InvoiceOut(BaseModel):
     id: str
@@ -99,8 +95,7 @@ class InvoiceOut(BaseModel):
     lines: List[InvoiceLineOut] = []
     payments: List[PaymentOut] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CreditNoteOut(BaseModel):
     id: str
@@ -113,5 +108,4 @@ class CreditNoteOut(BaseModel):
     reason: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

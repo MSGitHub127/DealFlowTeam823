@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime, date
 
@@ -34,8 +34,7 @@ class FulfillmentSplitLineOut(BaseModel):
     qty_allocated: int
     status: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class BackorderLineOut(BaseModel):
     id: str
@@ -45,8 +44,7 @@ class BackorderLineOut(BaseModel):
     is_consolidated: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class FulfillmentOrderOut(BaseModel):
     id: str
@@ -64,8 +62,7 @@ class FulfillmentOrderOut(BaseModel):
     split_lines: List[FulfillmentSplitLineOut] = []
     backorders: List[BackorderLineOut] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class FulfillmentOverrideRequest(BaseModel):
     reason: str

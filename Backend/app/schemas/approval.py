@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -19,8 +19,7 @@ class ApprovalStepOut(BaseModel):
     reason: Optional[str] = None
     acted_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ApprovalRequestOut(BaseModel):
     id: str
@@ -36,8 +35,7 @@ class ApprovalRequestOut(BaseModel):
     updated_at: datetime
     steps: List[ApprovalStepOut] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class AuditLogOut(BaseModel):
     id: str
@@ -52,5 +50,4 @@ class AuditLogOut(BaseModel):
     new_values: Optional[Dict[str, Any]] = None
     timestamp: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

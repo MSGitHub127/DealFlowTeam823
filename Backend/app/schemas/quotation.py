@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -35,8 +35,7 @@ class QuotationLineOut(BaseModel):
     subscription_plan_id: Optional[str] = None
     subscription_plan_name: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Customer Portal Line DTO (Cost/Margin Strictly Excluded) ---
 class PortalQuotationLineOut(BaseModel):
@@ -54,8 +53,7 @@ class PortalQuotationLineOut(BaseModel):
     is_recurring: bool
     subscription_plan_name: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Quotations ---
 class QuotationCreate(BaseModel):
@@ -84,8 +82,7 @@ class NegotiationCommentOut(BaseModel):
     proposed_delivery_date: Optional[datetime] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class QuotationOut(BaseModel):
     id: str
@@ -109,8 +106,7 @@ class QuotationOut(BaseModel):
     lines: List[QuotationLineOut] = []
     negotiation_comments: List[NegotiationCommentOut] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Customer Portal Quotation DTO (Margin/Cost/Risk Band Hidden) ---
 class PortalQuotationOut(BaseModel):
@@ -126,8 +122,7 @@ class PortalQuotationOut(BaseModel):
     lines: List[PortalQuotationLineOut] = []
     negotiation_comments: List[NegotiationCommentOut] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UpsellSuggestionOut(BaseModel):
     rule_id: str

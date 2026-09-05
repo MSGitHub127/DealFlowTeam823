@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -14,8 +14,7 @@ class ProductVariantOut(ProductVariantBase):
     id: str
     product_id: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class PriceListEntryBase(BaseModel):
     customer_tier: str
@@ -30,8 +29,7 @@ class PriceListEntryOut(PriceListEntryBase):
     id: str
     product_id: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ProductBase(BaseModel):
     name: str
@@ -66,5 +64,4 @@ class ProductOut(ProductBase):
     variants: List[ProductVariantOut] = []
     price_entries: List[PriceListEntryOut] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
