@@ -1,62 +1,143 @@
-# DealFlow360
+# DealFlow360 — Intelligent, Self-Governing Sales Operations Platform
 
-Quote-to-cash SaaS platform — quotations, discount approvals, fulfillment, subscriptions and invoicing in one workspace, for internal teams and customers.
+> **Quote → Approval → Fulfillment → Hybrid Billing → Portal Negotiation → Reporting**
 
-Stack: **React (Vite) + Express + PostgreSQL**, as requested (the original design docs mention Angular/Spring Boot — this build uses the MERN-style stack instead).
+DealFlow360 is an enterprise sales operations engine built to enforce pricing discipline, react dynamically to inventory realities, reconcile subscriptions and one-time hardware sales on unified orders, and empower customers with live, negotiable portal quotations.
 
-## What's included
+---
 
-- **backend/** — Express REST API, JWT auth, role-based access, PostgreSQL via `pg`. Covers: auth, products/catalog, discount tiers, quotations (with live discount validation), approvals, fulfillment, subscriptions, invoices, and a deal-health/reporting analytics endpoint.
-- **frontend/** — React app (Vite) covering the core flow from the spec: Login → Sales Dashboard → Quotations (list/grid + detail with live discount validation) → Approvals (list + decision) → Fulfillment → Subscriptions & Billing → Deal Health Cockpit → Admin Reporting → Customer Portal.
-- **docker-compose.yml** — spins up Postgres only (bring your own Node runtime).
+## 1. System Architecture
 
-See `status.md` for exactly what's finished vs. what's stubbed/remaining.
+```mermaid
+graph TD
+    subgraph Client ["Client Presentation Layer"]
+        A["Internal Sales Workspace (React / TS / Tailwind)"]
+        B["Customer Negotiation Portal (Isolated Route & Server-side DTO)"]
+    end
 
-## Quick start
+    subgraph Backend ["Backend Application Services (FastAPI)"]
+        C["API Gateway & Auth (JWT + Magic Link)"]
+        D["Blended Discount Risk Engine (§5.1)"]
+        E["Greedy Warehouse Splitter (§5.2)"]
+        F["Hybrid Billing & Proration Engine (§5.3)"]
+        G["Deal Health & Anomaly Scanner (§5.4)"]
+        H["Append-Only Audit Logger (§5.5)"]
+        I["Document Exporter (PDF / Excel)"]
+    end
 
-### 1. Database
-```bash
-docker compose up -d postgres
+    subgraph Data ["Data & Periodic Jobs"]
+        J[(PostgreSQL / SQLite + SQLAlchemy 2.0 Async)]
+        K["APScheduler Periodic Scans"]
+    end
+
+    A --> C
+    B --> C
+    C --> D
+    C --> E
+    C --> F
+    C --> G
+    C --> H
+    C --> I
+    D --> J
+    E --> J
+    F --> J
+    G --> J
+    H --> J
+    K --> G
 ```
-(Or point `DATABASE_URL` in `backend/.env` at any Postgres 14+ instance.)
 
-### 2. Backend
+### Strict Customer Portal Isolation
+The customer portal operates on a dedicated route group (`/portal?token=...`) with server-side response models (`PortalQuotationOut`). Cost prices, internal margins, approval thresholds, and audit notes are stripped **on the backend** and never transmitted over the wire.
+
+---
+
+## 2. Core Business Logic Engines
+
+### §5.1 Blended Discount Risk Engine
+Evaluates every line item against the stricter of customer tier ceilings and product category ceilings:
+$$\text{allowed} = \min(\text{tier\_ceiling}[\text{customer.tier}], \text{category\_ceiling}[\text{line.product.category}])$$
+$$\text{excess} = \max(0, \text{line.discount\_pct} - \text{allowed})$$
+$$\text{max\_excess} = \max(\text{line excesses}), \quad \text{total\_excess} = \sum(\text{line excesses})$$
+
+- **NONE**: Within allowable limits $\rightarrow$ direct approval.
+- **MEDIUM**: $\text{max\_excess} \le 5\%$ $\rightarrow$ routes to **Sales Manager** (Step 1).
+- **HIGH**: $\text{max\_excess} > 5\%$ or $\text{total\_excess} > 8\%$ $\rightarrow$ routes to **Sales Manager** then **Finance/Ops** (Step 2).
+
+### §5.2 Greedy, Cost-Weighted Warehouse Allocation
+- Evaluates stock across active depots ordered by `shipping_cost_weight ASC`.
+- First attempts a single-depot fulfillment to minimize shipments to 1.
+- If order exceeds single depot capacity, greedily assigns available inventory from the cheapest depot first and logs remaining units to `BackorderLine`.
+- Detects stock replenishment and offers a one-click **"Consolidate Remaining Backorders"** action.
+
+### §5.3 Hybrid Billing & Mid-Cycle Subscription Proration
+- Strict policy: **Invoice per shipment** — physical hardware is never invoiced prior to dispatch.
+- Evaluates mid-cycle seat/plan adjustments:
+  $$\text{daily\_rate} = \frac{\text{plan.price}}{\text{cycle\_length\_days}}$$
+  $$\text{proration\_delta} = (\text{new\_daily\_rate} - \text{old\_daily\_rate}) \times \text{remaining\_days}$$
+- Automated generation of credit notes or additional charges.
+
+### §5.4 Deal Health & Anomaly Scanners
+- **Stalled Deals**: Quotes inactive for $> 7$ days in negotiation or draft stages.
+- **Discount Anomalies**: Deals where discount exceeds $1.4\times$ the sales rep's historical trailing average.
+- **Logistics Slippage**: Fulfillment orders exceeding estimated dispatch dates without carrier shipment.
+
+---
+
+## 3. Quick Test Flow Walkthrough (8-Step Official Verification)
+
+| Step | Flow Description | Verification Outcome in DealFlow360 |
+|---|---|---|
+| **1** | Login and verify basic configuration data | `Admin Config` shows Gold (15%), Silver (10%), Bronze (5%) ceilings, Chicago & NYC depots, and Monthly SaaS plans. |
+| **2** | Create quotation with over-normal discount | Add **Setup Service** with 18% discount (allowed is only 10% for Gold) $\rightarrow$ Line turns **OVER (+8%)** immediately. |
+| **3** | Submit quotation without manual routing request | Quote automatically flags as **HIGH RISK** and auto-routes to Sales Manager $\rightarrow$ Finance. |
+| **4** | Accept upsell suggestion while building quote | Add recommended **Pro Docking Station** $\rightarrow$ Order total and gross margin update in real time. |
+| **5** | Approve quotation and evaluate warehouse split | Order for 6 laptops splits automatically: **4 from Main Warehouse (Chicago)** + **2 from East Depot (NYC)**. |
+| **6** | Hybrid order billing separation | One-time hardware and recurring cloud subscription lines are displayed, invoiced, and tracked independently. |
+| **7** | Customer portal counter-discount negotiation | Customer proposes 18% counter-discount in `/portal` $\rightarrow$ Quote automatically re-enters **pending_approval**! |
+| **8** | Dispatch shipment, record payment, and reconcile | Dispatching fulfillment creates invoice; recording full payment updates status to **PAID**. |
+
+---
+
+## 4. Running the Application
+
+### Option A: Direct Local Startup (Fastest & Zero Setup)
+Make sure Python 3.10+ and Node.js 18+ are installed.
+
+```bash
+# Windows
+start.bat
+
+# Linux / Mac
+chmod +x start.sh
+./start.sh
+```
+
+- **Frontend Workspace**: [http://localhost:5173](http://localhost:5173)
+- **Customer Portal**: [http://localhost:5173/portal?token=portal-acme-gold-token-12345](http://localhost:5173/portal?token=portal-acme-gold-token-12345)
+- **FastAPI OpenAPI Interactive Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+### Option B: Docker Compose (PostgreSQL 16 + FastAPI + Vite)
+With Docker Desktop running:
+```bash
+docker compose up --build
+```
+
+---
+
+## 5. Running Automated Backend Tests
+
 ```bash
 cd backend
-cp .env.example .env      # edit DATABASE_URL / JWT_SECRET if needed
-npm install
-npm run migrate           # creates tables
-npm run seed               # demo customers, products, discount tiers, users
-npm run dev                # starts on http://localhost:4000
+pytest -v tests/test_quick_flow.py
 ```
+All 8 steps of the Quick Test Flow run as end-to-end integration tests.
 
-### 3. Frontend
-```bash
-cd frontend
-npm install
-npm run dev                # starts on http://localhost:5173, proxies /api to :4000
-```
+---
 
-### 4. Log in
-Any of these (password for all: `password123`):
-- `rep@dealflow360.com` — Sales Rep
-- `manager@dealflow360.com` — Sales Manager (approver)
-- `finance@dealflow360.com` — Finance (approver)
-- `vp@dealflow360.com` — VP (approver, high-risk deals)
-- `admin@dealflow360.com` — Admin
-- `customer@dealflow360.com` — Customer Portal view
+## 6. What We'd Build Next
 
-## Creating your first quotation (demo flow)
-
-1. Log in as `rep@dealflow360.com`.
-2. Get a customer id: `GET http://localhost:4000/api/deal-health/overview` (with your token) → `customers[].id`. (A "pick customer from dropdown" UI is on the remaining list — see status.md.)
-3. Go to **Quotations → + New Quotation**, paste the customer id, add product lines, watch the discount **OK/OVER** badge update live as you type a discount %.
-4. Save Draft → open the quotation → **Submit for Approval**.
-5. Log out, log in as `manager@dealflow360.com` (or `finance@dealflow360.com` / `vp@dealflow360.com` depending on the risk bucket) → **Approvals** → Approve/Reject.
-6. Approved quotations auto-create a Fulfillment record — check **Fulfillment**.
-
-## Key design decisions carried over from the spec
-
-- **Live discount validation**: `POST /api/quotations/validate-line` checks a product's category discount limit as the user types — this is the core differentiator vs. traditional CPQ tools that only validate at submit-time.
-- **Risk-based routing**: `approval_chains` table maps a discount % range to LOW/MEDIUM/HIGH risk and the responsible approver role (Sales Manager / Finance / VP).
-- **Deal Health Cockpit**: composite Health/Churn/Expansion/SLA scores, a segment × pipeline-status heatmap, and an at-risk-value breakdown by reason.
+1. **Multi-Currency & Multi-Entity Consolidation**: Live FX exchange rates with currency-specific price books.
+2. **Machine Learning-Ranked Upsell Models**: Collaborative filtering based on historical order graphs.
+3. **Dynamic Multi-Level Approval Hierarchies**: Visual DAG workflow builder for approval chains.
+4. **Legally Binding E-Signature**: Native DocuSign/HelloSign integration on portal acceptance.
+5. **ERP Connectors**: Two-way synchronization with SAP, NetSuite, and Odoo.
