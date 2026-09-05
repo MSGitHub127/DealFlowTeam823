@@ -117,9 +117,19 @@ chmod +x start.sh
 - **FastAPI OpenAPI Interactive Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ### Option B: Docker Compose (PostgreSQL 16 + FastAPI + Vite)
-With Docker Desktop running:
 ```bash
+cp .env.example .env   # then edit .env - set a real SECRET_KEY and Postgres password
 docker compose up --build
+```
+The backend container runs `alembic upgrade head` before starting uvicorn, so Postgres gets its schema from the migration history in `backend/alembic/versions/`, not an implicit `create_all`.
+
+### Database Migrations (Alembic)
+SQLite dev mode (`ENVIRONMENT != production`) still auto-creates tables on boot for zero-friction local runs. Postgres / production deploys should be schema-migration-driven instead:
+```bash
+cd backend
+alembic upgrade head                                   # apply all migrations
+alembic revision --autogenerate -m "describe your change"   # after changing a model
+alembic downgrade -1                                    # roll back one step
 ```
 
 ---
@@ -130,7 +140,7 @@ docker compose up --build
 cd backend
 pytest -v tests/test_quick_flow.py
 ```
-All 8 steps of the Quick Test Flow run as end-to-end integration tests.
+All 8 steps of the Quick Test Flow run as end-to-end integration tests. `tests/conftest.py` points each test session at its own throwaway SQLite file (auto-deleted after the run), so repeated runs never see stale seeded/depleted data from a previous run.
 
 ---
 

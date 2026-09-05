@@ -5,16 +5,18 @@ services:
     image: postgres:16-alpine
     container_name: dealflow360_postgres
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: dealflow
-      POSTGRES_PASSWORD: dealflow_password
-      POSTGRES_DB: dealflow360
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dealflow -d dealflow360"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -28,16 +30,19 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://dealflow:dealflow_password@postgres:5432/dealflow360
-      - SECRET_KEY=dealflow360_super_secret_jwt_key_2026
-      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - SECRET_KEY=${SECRET_KEY}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - CORS_ORIGINS=${CORS_ORIGINS}
       - PORT=8000
     ports:
       - "8000:8000"
     volumes:
       - ./backend:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
   frontend:
     build:
@@ -47,8 +52,10 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    env_file:
+      - .env
     environment:
-      - VITE_API_BASE_URL=http://localhost:8000
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
     ports:
       - "5173:5173"
     volumes:
@@ -57,3 +64,4 @@ services:
 
 volumes:
   pgdata:
+
