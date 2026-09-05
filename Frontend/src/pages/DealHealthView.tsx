@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dealHealthApi } from '../services/api';
 import { DealHealthSummary, DealHealthAlert } from '../types';
+import { useDealFlowSocket } from '../hooks/useDealFlowSocket';
 import {
   HeartPulse, AlertTriangle, Clock, Zap, TrendingUp,
   BellRing, ArrowUpRight, CheckCircle2, ShieldAlert
@@ -28,6 +29,14 @@ export const DealHealthView: React.FC = () => {
   useEffect(() => {
     loadAlerts();
   }, []);
+
+  // Live push: scheduler-driven scans (stalled/anomaly/slippage) land here
+  // without the rep having to hit Reload Data.
+  useDealFlowSocket((msg) => {
+    if (msg.type === 'deal_health_alert') {
+      loadAlerts();
+    }
+  });
 
   const handleAct = async (alertId: string, action: 'nudge' | 'escalate' | 'dismiss') => {
     setActionLoading(true);
