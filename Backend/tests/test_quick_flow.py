@@ -160,7 +160,7 @@ async def test_step_5_approval_and_multi_warehouse_split():
         qid = q_res.json()["id"]
         await ac.post(f"/api/quotations/{qid}/lines", json={
             "product_id": laptop["id"],
-            "qty": 6,
+            "qty": 10,
             "discount_pct": 0.0
         })
 
