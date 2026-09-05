@@ -5,7 +5,7 @@ import { UserRole } from '../types';
 import {
   Mail, Lock, Eye, EyeOff, ShieldCheck, ShieldAlert,
   ArrowRight, Sparkles, User, Building, CheckCircle2,
-  Zap, Layers
+  Layers
 } from 'lucide-react';
 
 export const Login: React.FC = () => {
@@ -136,10 +136,7 @@ export const Login: React.FC = () => {
         <div className="relative z-10 space-y-6">
           {/* Logo & Headline (TransitOps Signature Branding) */}
           <div>
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="h-10 w-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-[#c9822f] shadow-lg shadow-amber-500/10">
-                <Zap className="h-5 w-5 text-[#c9822f]" />
-              </div>
+            <div className="flex items-center mb-2">
               <h1 className="font-['Caveat',cursive] text-4xl lg:text-5xl font-bold text-[#c9822f] tracking-wide select-none drop-shadow-sm">
                 DealFlow360
               </h1>

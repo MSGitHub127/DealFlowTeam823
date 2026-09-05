@@ -141,15 +141,15 @@ Every step of the sales lifecycle is verified end-to-end in automated integratio
 
 ## 🔑 4. Demo Login Credentials
 
-The local database bootstrap comes pre-seeded with ready-to-test personas:
+The local database bootstrap comes pre-seeded with 4 ready-to-test enterprise personas:
 
-| Role | Email | Password | Access Scope |
-| :--- | :--- | :--- | :--- |
-| **Admin** | `admin@dealflow360.com` | `admin123` | System Rules, Discount Ceilings, Warehouse Matrix |
-| **Sales Rep** | `rep@dealflow360.com` | `rep123` | Quote Builder, Pipeline Kanban, Upsell Suggestions |
-| **Approver** | `approver@dealflow360.com` | `approver123` | Approvals Inbox (L1 Manager / L2 Finance sign-off) |
-| **Fulfillment** | `ops@dealflow360.com` | `ops123` | Warehouse Allocations, Dispatching, Backorder Queue |
-| **Customer Portal** | *Magic Link Token* | *None (Token)* | Isolated Negotiation, Counter-Proposal, Countersigning |
+| Role | Name | Email | Password | Access Scope |
+| :--- | :--- | :--- | :--- | :--- |
+| **Administrator** | Admin Chief | `admin@dealflow.com` | `admin123` | Native unrestricted full access across all 8 modules & rules |
+| **Sales Rep** | Alex Vance | `rep@dealflow.com` | `rep123` | Quote Builder, Pipeline Kanban, Upsell Margin Suggestions |
+| **Sales Manager** | Morgan Drake | `manager@dealflow.com` | `manager123` | L1 Margin Approvals, Rep Velocity & Pipeline Oversight |
+| **Finance & Ops** | Taylor Reed | `finance@dealflow.com` | `finance123` | L2 High-Risk Sign-Offs, Multi-Warehouse Split & Billing |
+| **Customer Portal** | Sarah Connor | *Token-Based* | *None (Direct)* | Isolated Negotiation, Counter-Proposal, Order Confirmation |
 
 ---
 

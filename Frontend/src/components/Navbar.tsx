@@ -15,7 +15,7 @@ import {
   ExternalLink,
   RefreshCw,
   Radio,
-  ChevronDown,
+  LogOut,
   Menu,
   X,
 } from "lucide-react";
@@ -31,7 +31,7 @@ export const Navbar: React.FC<SidebarProps> = ({
   isCollapsed,
   setIsCollapsed,
 }) => {
-  const { currentRole, switchRole, customers } = useAuth();
+  const { currentUser, currentRole, isAdmin, customers, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [, setLiveConnected] = useState<boolean>(true);
@@ -45,69 +45,48 @@ export const Navbar: React.FC<SidebarProps> = ({
     }
   });
 
-  const navLinks = [
+  const navLinks: { name: string; path: string; icon: any; roles?: UserRole[] }[] = [
     { name: "Dashboard", path: "/", icon: LayoutDashboard },
-    { name: "Pipeline", path: "/pipeline", icon: Kanban },
-    {
-      name: "Approvals",
-      path: "/approvals",
-      icon: ShieldCheck,
-      roles: ["sales_manager", "finance_ops", "admin"],
-    },
-    { name: "Fulfillment", path: "/fulfillment", icon: Truck },
-    { name: "Hybrid Billing", path: "/billing", icon: CreditCard },
-    { name: "Deal Health", path: "/deal-health", icon: HeartPulse },
-    { name: "Reports", path: "/reports", icon: BarChart3 },
-    {
-      name: "Admin Config",
-      path: "/admin/rules",
-      icon: Settings,
-      roles: ["sales_manager", "admin", "finance_ops"],
-    },
+    { name: "Pipeline", path: "/pipeline", icon: Kanban, roles: ["sales_rep", "sales_manager", "admin"] },
+    { name: "Approvals", path: "/approvals", icon: ShieldCheck, roles: ["sales_manager", "finance_ops", "admin"] },
+    { name: "Fulfillment", path: "/fulfillment", icon: Truck, roles: ["finance_ops", "admin"] },
+    { name: "Hybrid Billing", path: "/billing", icon: CreditCard, roles: ["finance_ops", "admin"] },
+    { name: "Deal Health", path: "/deal-health", icon: HeartPulse, roles: ["sales_manager", "admin"] },
+    { name: "Reports", path: "/reports", icon: BarChart3, roles: ["sales_manager", "finance_ops", "admin"] },
+    { name: "Admin Config", path: "/admin/rules", icon: Settings, roles: ["admin"] },
   ];
-
-  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const role = e.target.value as UserRole;
-    if (role === "customer") {
-      const acme =
-        customers.find((c) => c.company_name.includes("Acme")) || customers[0];
-      if (acme) {
-        navigate(`/portal?token=${acme.portal_token}`);
-      } else {
-        navigate("/portal");
-      }
-    } else {
-      switchRole(role);
-    }
-  };
 
   const isPortal = location.pathname.startsWith("/portal");
 
   if (isPortal) {
     return (
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-6 py-3">
+      <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-6 py-3 transition-all text-slate-100">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="h-9 w-9 rounded-xl bg-slate-900 flex items-center justify-center text-white font-bold text-sm">
-              DF
-            </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h1 className="font-extrabold text-slate-900 text-base tracking-tight">
-                  Customer Portal
-                </h1>
-                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  Restricted Isolated View
+                <span className="font-['Caveat',cursive] text-2xl sm:text-3xl font-bold text-[#c9822f] tracking-wide leading-none select-none">
+                  DealFlow360
+                </span>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
+                  Customer Portal Isolated View
                 </span>
               </div>
+              <p className="text-[11px] text-slate-400">Live negotiation & electronic order confirmation</p>
             </div>
           </div>
-          <button
-            onClick={() => navigate("/")}
-            className="text-xs font-semibold px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-sm"
-          >
-            Return to Workspace
-          </button>
+
+          <div className="flex items-center space-x-4">
+            <span className="hidden md:inline-flex text-xs text-slate-400 font-medium">
+              🔒 Internal margins & costs strictly hidden server-side
+            </span>
+            <button
+              onClick={() => navigate("/")}
+              className="text-xs font-semibold px-3.5 py-1.5 rounded-xl border border-slate-700 bg-slate-800/90 hover:bg-slate-700 text-slate-200 shadow-sm transition"
+            >
+              Return to Workspace
+            </button>
+          </div>
         </div>
       </header>
     );
@@ -120,46 +99,40 @@ export const Navbar: React.FC<SidebarProps> = ({
           isCollapsed ? "w-20" : "w-64"
         }`}
       >
-        {/* Top Header & Brand with 3 Lines Hamburger Toggle Button */}
+        {/* Top Header & Brand with Toggle Button */}
         <div className="flex flex-col space-y-6">
           <div className="flex items-center justify-between px-1">
-            <Link
-              to="/"
-              className="flex items-center space-x-3 overflow-hidden"
-            >
-              <div className="h-10 w-10 min-w-[2.5rem] rounded-xl bg-gradient-to-tr from-sky-500 to-sky-400 flex items-center justify-center text-white font-black text-sm shadow-md">
-                360
-              </div>
-              {!isCollapsed && (
-                <div className="flex flex-col transition-opacity duration-200">
-                  <span className="font-black tracking-tight text-white text-lg">
-                    DealFlow<span className="text-sky-400">360</span>
-                  </span>
-                  <span className="text-[9px] uppercase font-bold tracking-widest text-sky-400/90 bg-sky-950/70 px-1.5 py-0.5 rounded-full border border-sky-800/60 w-fit">
+            <Link to="/" className="flex items-center space-x-2 overflow-hidden group">
+              <div className="flex items-baseline space-x-1.5">
+                <span className="font-['Caveat',cursive] text-2xl sm:text-3xl font-bold text-[#c9822f] tracking-wide leading-none select-none transition-transform group-hover:scale-105">
+                  {isCollapsed ? "DF" : "DealFlow360"}
+                </span>
+                {!isCollapsed && (
+                  <span className="text-[9px] uppercase font-extrabold tracking-wider text-amber-400/80 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/50 hidden sm:inline-block">
                     Engine
                   </span>
-                </div>
-              )}
+                )}
+              </div>
             </Link>
 
-            {/* 3 Lines (Hamburger) Button */}
+            {/* Toggle Hamburger Button */}
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors focus:outline-none"
               title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
               {isCollapsed ? (
-                <Menu className="h-6 w-6 text-sky-400" />
+                <Menu className="h-5 w-5 text-amber-400" />
               ) : (
                 <X className="h-5 w-5 text-slate-400" />
               )}
             </button>
           </div>
 
-          {/* Navigation Items */}
+          {/* Navigation Items (Strict Role-Based Access) */}
           <nav className="flex flex-col space-y-1">
             {navLinks.map((item) => {
-              if (item.roles && !item.roles.includes(currentRole)) return null;
+              if (item.roles && !isAdmin && !item.roles.includes(currentRole)) return null;
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
               return (
@@ -167,15 +140,15 @@ export const Navbar: React.FC<SidebarProps> = ({
                   key={item.path}
                   to={item.path}
                   title={isCollapsed ? item.name : undefined}
-                  className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
                     isActive
-                      ? "bg-sky-500/20 text-sky-300 border border-sky-500/30 shadow-sm"
+                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-sm"
                       : "text-slate-400 hover:text-white hover:bg-slate-800/60"
                   } ${isCollapsed ? "justify-center px-0" : ""}`}
                 >
-                  <Icon className="h-5 w-5 min-w-[1.25rem]" />
+                  <Icon className="h-4 w-4 min-w-[1rem]" />
                   {!isCollapsed && (
-                    <span className="truncate">{item.name}</span>
+                    <span className="truncate font-semibold">{item.name}</span>
                   )}
                 </Link>
               );
@@ -183,86 +156,78 @@ export const Navbar: React.FC<SidebarProps> = ({
           </nav>
         </div>
 
-        {/* Bottom Controls & Role Switcher */}
+        {/* Bottom Controls & Authentic Role Status */}
         <div className="flex flex-col space-y-3 pt-4 border-t border-slate-800">
-          <div
-            className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"} px-1`}
-          >
+          <div className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"} px-1`}>
             <div className="flex items-center space-x-1.5 text-xs text-slate-400">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
               {!isCollapsed && (
-                <span className="text-xs font-semibold text-slate-300">
-                  Live Socket
+                <span className="text-[11px] font-semibold text-slate-300">
+                  Live Sync
                 </span>
               )}
             </div>
 
-            {onReload && (
+            {onReload && !isCollapsed && (
               <button
                 onClick={onReload}
                 title="Reload data"
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
               >
-                <RefreshCw className="h-4 w-4" />
+                <RefreshCw className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
 
+          {/* Customer Portal Shortcut */}
           <button
             onClick={() => {
-              const acme =
-                customers.find((c) => c.company_name.includes("Acme")) ||
-                customers[0];
+              const acme = customers.find((c) => c.company_name.includes("Acme")) || customers[0];
               if (acme) navigate(`/portal?token=${acme.portal_token}`);
             }}
             title={isCollapsed ? "Customer Portal" : undefined}
-            className={`flex items-center space-x-2 text-xs py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700/70 font-semibold ${
+            className={`flex items-center space-x-2 text-xs py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700/70 font-semibold transition ${
               isCollapsed ? "justify-center px-0" : "justify-center px-3"
             }`}
           >
-            <ExternalLink className="h-4 w-4 min-w-[1rem]" />
+            <ExternalLink className="h-3.5 w-3.5 min-w-[0.9rem]" />
             {!isCollapsed && <span>Customer Portal</span>}
           </button>
 
-          {/* Role Switcher */}
+          {/* Authentic Locked Role Badge */}
           <div className="bg-slate-800/90 p-2.5 rounded-xl border border-slate-700/80">
             {!isCollapsed && (
               <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block mb-1">
-                Current Role
+                Assigned Scope
               </span>
             )}
-            <div className="relative flex items-center justify-center">
-              <select
-                value={currentRole}
-                onChange={handleRoleChange}
-                className={`bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer appearance-none ${
-                  isCollapsed ? "w-6 text-center pl-1" : "w-full pr-4"
-                }`}
-              >
-                <option value="sales_rep" className="bg-slate-900 text-white">
-                  Sales Rep (Alex)
-                </option>
-                <option
-                  value="sales_manager"
-                  className="bg-slate-900 text-white"
-                >
-                  Sales Manager (Morgan)
-                </option>
-                <option value="finance_ops" className="bg-slate-900 text-white">
-                  Finance/Ops (Taylor)
-                </option>
-                <option value="admin" className="bg-slate-900 text-white">
-                  Admin (Full Control)
-                </option>
-                <option value="customer" className="bg-slate-900 text-sky-400">
-                  Customer View (Portal)
-                </option>
-              </select>
+            <div className="flex items-center space-x-1.5">
+              <span className={`h-2 w-2 rounded-full ${isAdmin ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'} flex-shrink-0`} />
               {!isCollapsed && (
-                <ChevronDown className="h-3 w-3 text-slate-400 pointer-events-none absolute right-0" />
+                <span className="text-xs font-bold text-white truncate">
+                  {isAdmin && 'Administrator'}
+                  {!isAdmin && currentRole === 'sales_rep' && 'Sales Rep (Alex)'}
+                  {!isAdmin && currentRole === 'sales_manager' && 'Sales Manager (Morgan)'}
+                  {!isAdmin && currentRole === 'finance_ops' && 'Finance/Ops (Taylor)'}
+                </span>
               )}
             </div>
           </div>
+
+          {/* Sign Out to Login */}
+          <button
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
+            title={isCollapsed ? "Sign Out" : undefined}
+            className={`flex items-center space-x-2 text-xs py-2 rounded-xl bg-slate-800/80 hover:bg-rose-950/60 hover:border-rose-800/60 text-slate-300 hover:text-rose-300 border border-slate-700/80 font-medium transition ${
+              isCollapsed ? "justify-center px-0" : "justify-center px-3"
+            }`}
+          >
+            <LogOut className="h-3.5 w-3.5 text-rose-400 flex-shrink-0" />
+            {!isCollapsed && <span>Sign Out</span>}
+          </button>
         </div>
       </aside>
 

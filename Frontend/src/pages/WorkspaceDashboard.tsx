@@ -8,7 +8,7 @@ import {
   ArrowRight, DollarSign, TrendingUp, CheckCircle2,
   Sparkles, Layers, ChevronRight, Activity, RefreshCw,
   Search, Filter, Clock, AlertTriangle, ExternalLink,
-  ShieldCheck, PackageCheck, Zap, BarChart2
+  ShieldCheck, PackageCheck, Zap, BarChart2, CreditCard
 } from 'lucide-react';
 
 export const WorkspaceDashboard: React.FC = () => {
@@ -25,6 +25,7 @@ export const WorkspaceDashboard: React.FC = () => {
   // Interactive filters
   const [stageFilter, setStageFilter] = useState<string>('all');
   const [tierFilter, setTierFilter] = useState<string>('all');
+  const [showGuide, setShowGuide] = useState<boolean>(false);
 
   const loadData = async (isSilent = false) => {
     if (!isSilent) setLoading(true);
@@ -164,22 +165,227 @@ export const WorkspaceDashboard: React.FC = () => {
             </button>
           </div>
 
-          <Link
-            to="/quote/new"
-            className="flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 dark:bg-sky-500 dark:hover:bg-sky-400 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-sky-500/10 transition-all hover:scale-[1.02]"
-          >
-            <Plus className="h-4 w-4" />
-            <span>New Quotation</span>
-          </Link>
+          {/* Role-tailored primary action buttons */}
+          {(currentRole === 'sales_rep' || currentRole === 'sales_manager' || isAdmin) && (
+            <Link
+              to="/quote/new"
+              className="flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 dark:bg-sky-500 dark:hover:bg-sky-400 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-sky-500/10 transition-all hover:scale-[1.02]"
+            >
+              <Plus className="h-4 w-4" />
+              <span>New Quotation</span>
+            </Link>
+          )}
 
-          <Link
-            to="/pipeline"
-            className="flex items-center space-x-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl font-semibold text-xs shadow-sm transition-all"
-          >
-            <span>Pipeline Board</span>
-            <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
-          </Link>
+          {(currentRole === 'sales_rep' || currentRole === 'sales_manager' || isAdmin) && (
+            <Link
+              to="/pipeline"
+              className="flex items-center space-x-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl font-semibold text-xs shadow-sm transition-all"
+            >
+              <span>Pipeline Board</span>
+              <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
+            </Link>
+          )}
+
+          {(currentRole === 'finance_ops' || currentRole === 'sales_manager' || isAdmin) && (
+            <Link
+              to="/approvals"
+              className="flex items-center space-x-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2.5 rounded-xl font-bold text-xs shadow-sm transition-all"
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-slate-950" />
+              <span>Review Approvals</span>
+            </Link>
+          )}
+
+          {(currentRole === 'finance_ops' || isAdmin) && (
+            <Link
+              to="/fulfillment"
+              className="flex items-center space-x-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl font-semibold text-xs shadow-sm transition-all"
+            >
+              <Truck className="h-3.5 w-3.5 text-slate-400" />
+              <span>Warehouse Dispatch</span>
+            </Link>
+          )}
+
+          {(currentRole === 'finance_ops' || isAdmin) && (
+            <Link
+              to="/billing"
+              className="flex items-center space-x-1.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl font-semibold text-xs shadow-sm transition-all"
+            >
+              <CreditCard className="h-3.5 w-3.5 text-slate-400" />
+              <span>Invoices &amp; Billing</span>
+            </Link>
+          )}
         </div>
+      </div>
+
+      {/* ==================== 1.5. INTERACTIVE 8-STEP EVALUATOR GUIDE ==================== */}
+      <div className="bg-slate-900 rounded-3xl p-5 border border-slate-800 shadow-sm text-slate-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center space-x-3">
+            <div className="h-8 w-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 font-black text-xs">
+              8x
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <h2 className="font-bold text-sm tracking-tight text-white">
+                  Evaluator & Judge Quick Tour
+                </h2>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  8-Step Autonomous Sales-Ops
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Test the complete end-to-end sales lifecycle verified by our automated test suite.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowGuide(!showGuide)}
+            className="flex items-center space-x-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 transition self-start sm:self-auto"
+          >
+            <span>{showGuide ? 'Hide Walkthrough' : 'Explore 8 Steps'}</span>
+            <ChevronRight className={`h-3.5 w-3.5 transition-transform ${showGuide ? 'rotate-90' : ''}`} />
+          </button>
+        </div>
+
+        {showGuide && (
+          <div className="mt-5 pt-5 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Step 1 */}
+            <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-amber-400">Step 1 • RBAC & Rules</span>
+                <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Passed</span>
+              </div>
+              <p className="text-xs text-slate-200 font-semibold">Tier Disciplinary Matrix</p>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                4 accounts locked to authentic roles. Gold allows 15% discount; Bronze allows 5%.
+              </p>
+              <Link to="/admin/rules" className="inline-flex items-center text-[11px] font-bold text-sky-400 hover:text-sky-300 space-x-1 pt-1">
+                <span>View Rule Matrix</span>
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            {/* Step 2 */}
+            <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-amber-400">Step 2 • Pricing Guardrails</span>
+                <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Passed</span>
+              </div>
+              <p className="text-xs text-slate-200 font-semibold">Strictest Ceiling Detection</p>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Add Services with 18% discount (ceiling is 10%). Line immediately flags OVER (+8%).
+              </p>
+              <Link to="/quote/new" className="inline-flex items-center text-[11px] font-bold text-sky-400 hover:text-sky-300 space-x-1 pt-1">
+                <span>Try Quote Builder</span>
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            {/* Step 3 */}
+            <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-amber-400">Step 3 • Auto Escalation</span>
+                <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Passed</span>
+              </div>
+              <p className="text-xs text-slate-200 font-semibold">Autonomous L1/L2 Routing</p>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Over-discount quote evaluates to HIGH RISK. Routes to Sales Manager & Finance automatically.
+              </p>
+              <Link to="/approvals" className="inline-flex items-center text-[11px] font-bold text-sky-400 hover:text-sky-300 space-x-1 pt-1">
+                <span>Open Approvals</span>
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            {/* Step 4 */}
+            <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-amber-400">Step 4 • Upsell Engine</span>
+                <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Passed</span>
+              </div>
+              <p className="text-xs text-slate-200 font-semibold">Live Margin Feedback</p>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Accept dock accessory suggestion: order margin and revenue recalculate in real time.
+              </p>
+              <Link to="/pipeline" className="inline-flex items-center text-[11px] font-bold text-sky-400 hover:text-sky-300 space-x-1 pt-1">
+                <span>Pipeline Deals</span>
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            {/* Step 5 */}
+            <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-amber-400">Step 5 • Greedy Split</span>
+                <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Passed</span>
+              </div>
+              <p className="text-xs text-slate-200 font-semibold">Multi-Warehouse Allocation</p>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Order 10 laptops: greedily pulls 4 units from Chicago and splits 6 from NYC depot.
+              </p>
+              <Link to="/fulfillment" className="inline-flex items-center text-[11px] font-bold text-sky-400 hover:text-sky-300 space-x-1 pt-1">
+                <span>Fulfillment Splits</span>
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            {/* Step 6 */}
+            <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-amber-400">Step 6 • Hybrid Billing</span>
+                <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Passed</span>
+              </div>
+              <p className="text-xs text-slate-200 font-semibold">Hardware vs SaaS Invoicing</p>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                One-time hardware and recurring SaaS subscription billed separately with proration math.
+              </p>
+              <Link to="/billing" className="inline-flex items-center text-[11px] font-bold text-sky-400 hover:text-sky-300 space-x-1 pt-1">
+                <span>Billing Invoices</span>
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+
+            {/* Step 7 */}
+            <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-amber-400">Step 7 • Customer Portal</span>
+                <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Passed</span>
+              </div>
+              <p className="text-xs text-slate-200 font-semibold">Isolated Negotiation</p>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Customer counter-offers via isolated portal without seeing costs; auto re-triggers approval.
+              </p>
+              <button
+                onClick={() => {
+                  const acme = customers.find(c => c.company_name.includes('Acme')) || customers[0];
+                  if (acme) navigate(`/portal?token=${acme.portal_token}`);
+                }}
+                className="inline-flex items-center text-[11px] font-bold text-sky-400 hover:text-sky-300 space-x-1 pt-1"
+              >
+                <span>Launch Acme Portal</span>
+                <ExternalLink className="h-3 w-3" />
+              </button>
+            </div>
+
+            {/* Step 8 */}
+            <div className="bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase text-amber-400">Step 8 • Dispatch & Settle</span>
+                <span className="text-[9px] bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded font-bold">Passed</span>
+              </div>
+              <p className="text-xs text-slate-200 font-semibold">Invoice Generation & Payment</p>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Dispatch generates invoice per shipment; recording payment marks invoice PAID.
+              </p>
+              <Link to="/deal-health" className="inline-flex items-center text-[11px] font-bold text-sky-400 hover:text-sky-300 space-x-1 pt-1">
+                <span>Health Radar</span>
+                <ArrowRight className="h-3 w-3" />
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ==================== 2. HIGH-IMPACT KPI CARDS (TransitOps Style) ==================== */}
