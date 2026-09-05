@@ -48,7 +48,7 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex">
+    <div className="fixed inset-0 w-full h-full overflow-hidden bg-slate-50 text-slate-900 flex overscroll-none select-none">
       {/* Vertical Collapsible Sidebar */}
       {!isPortal && (
         <Navbar
@@ -58,13 +58,14 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Main Content Area - Dynamic Padding for Collapsible Sidebar */}
+      {/* Main Content Area - Dedicated Vertical Scroll without Overscroll Stretch */}
       <div
-        className={`flex-1 transition-all duration-300 min-w-0 ${
+        className={`flex-1 h-full overflow-y-auto overflow-x-hidden transition-all duration-300 min-w-0 overscroll-none ${
           isPortal ? "pl-0" : isCollapsed ? "pl-20" : "pl-64"
         }`}
+        style={{ overscrollBehavior: 'none', overscrollBehaviorY: 'none' }}
       >
-        <main className={isPortal ? "" : "p-6 pb-16"}>
+        <main className={isPortal ? "w-full" : "w-full max-w-full pb-6 select-text"}>
           <Routes>
             {/* Internal Sales Ops Workspace with RBAC guards */}
             <Route

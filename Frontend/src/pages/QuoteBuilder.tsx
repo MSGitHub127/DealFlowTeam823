@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { quotationsApi, productsApi, authApi } from '../services/api';
 import { Quotation, Product, Customer, UpsellSuggestion, QuotationLine } from '../types';
 import { useAuth } from '../context/AuthContext';
 import {
   Plus, Trash2, ShieldAlert, Sparkles, CheckCircle2,
-  AlertTriangle, ArrowRight, Save, Send, RefreshCw, ShoppingCart, Tag,
-  Minus, Layers, Check
+  AlertTriangle, ArrowRight, ArrowLeft, Save, Send, RefreshCw, ShoppingCart, Tag,
+  Minus, Layers, Check, FileText, Building, Info
 } from 'lucide-react';
 
 export const QuoteBuilder: React.FC = () => {
@@ -20,9 +20,15 @@ export const QuoteBuilder: React.FC = () => {
   const [suggestions, setSuggestions] = useState<UpsellSuggestion[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState<boolean>(true);
 
-  // New quote modal / form fields
+  // Canvas notes
+  const [quoteNotes, setQuoteNotes] = useState<string>('');
+
+  // New quote panel fields
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [newQuoteNotes, setNewQuoteNotes] = useState<string>('');
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [newLineQty, setNewLineQty] = useState<number>(1);
   const [newLineDiscount, setNewLineDiscount] = useState<string>('0');
@@ -40,6 +46,8 @@ export const QuoteBuilder: React.FC = () => {
       if (id && id !== 'new') {
         const qRes = await quotationsApi.get(id);
         setQuote(qRes.data);
+        setQuoteNotes(qRes.data.notes || '');
+        setIsSaved(true);
         loadSuggestions(qRes.data.id);
       } else if (cRes.data.length > 0) {
         setSelectedCustomerId(cRes.data[0].id);
@@ -64,14 +72,51 @@ export const QuoteBuilder: React.FC = () => {
     init();
   }, [id]);
 
-  const handleCreateQuote = async () => {
+  const handleCreateQuote = async (redirectToCanvas: boolean = true) => {
     if (!selectedCustomerId) return;
     setSaving(true);
     try {
-      const res = await quotationsApi.create({ customer_id: selectedCustomerId });
-      navigate(`/quote/${res.data.id}`);
+      const payload: any = {
+        customer_id: selectedCustomerId,
+        notes: newQuoteNotes.trim() || undefined
+      };
+      if (selectedProductId) {
+        const discountVal = Math.min(100, Math.max(0, parseFloat(newLineDiscount) || 0));
+        payload.lines = [{
+          product_id: selectedProductId,
+          qty: newLineQty,
+          discount_pct: discountVal
+        }];
+      }
+      const res = await quotationsApi.create(payload);
+      if (redirectToCanvas) {
+        navigate(`/quote/${res.data.id}`);
+      } else {
+        navigate('/pipeline');
+      }
     } catch (e) {
-      console.error(e);
+      console.error('Error creating quotation:', e);
+      alert('Failed to save quotation. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!quote) return;
+    setSaving(true);
+    try {
+      const res = await quotationsApi.update(quote.id, {
+        notes: quoteNotes
+      });
+      setQuote(res.data);
+      setQuoteNotes(res.data.notes || '');
+      setIsSaved(true);
+      setSaveSuccessMsg('Quotation draft saved successfully in Pipeline!');
+      setTimeout(() => setSaveSuccessMsg(null), 4000);
+    } catch (e) {
+      console.error('Failed to save quotation:', e);
+      alert('Failed to save quotation changes. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -88,10 +133,13 @@ export const QuoteBuilder: React.FC = () => {
         discount_pct: discountVal
       });
       setQuote(res.data);
+      setIsSaved(true);
       loadSuggestions(res.data.id);
       setSelectedProductId('');
       setNewLineQty(1);
       setNewLineDiscount('0');
+      setSaveSuccessMsg('Line item added and quotation updated.');
+      setTimeout(() => setSaveSuccessMsg(null), 3000);
     } catch (e) {
       console.error(e);
     } finally {
@@ -104,7 +152,10 @@ export const QuoteBuilder: React.FC = () => {
     try {
       const res = await quotationsApi.deleteLine(quote.id, lineId);
       setQuote(res.data);
+      setIsSaved(true);
       loadSuggestions(res.data.id);
+      setSaveSuccessMsg('Line item removed and quotation recalculated.');
+      setTimeout(() => setSaveSuccessMsg(null), 3000);
     } catch (e) {
       console.error(e);
     }
@@ -120,7 +171,10 @@ export const QuoteBuilder: React.FC = () => {
         discount_pct: 0
       });
       setQuote(res.data);
+      setIsSaved(true);
       loadSuggestions(res.data.id);
+      setSaveSuccessMsg(`Upsell '${sugg.product_name}' attached to quotation.`);
+      setTimeout(() => setSaveSuccessMsg(null), 3000);
     } catch (e) {
       console.error(e);
     } finally {
@@ -152,44 +206,239 @@ export const QuoteBuilder: React.FC = () => {
     return <div className="p-16 text-center text-slate-400 font-medium text-xs">Loading Quotation Canvas...</div>;
   }
 
-  // Blank state: Create new quote
+  // Blank state: Create new quote via rich New Quotation Panel
   if (!quote && id === 'new') {
+    const selectedCustomer = customers.find((c) => c.id === selectedCustomerId) || customers[0];
+    const selectedProduct = products.find((p) => p.id === selectedProductId);
+    const tierDiscountLimit = selectedCustomer?.tier === 'Gold' ? 15 : selectedCustomer?.tier === 'Silver' ? 10 : 5;
+    const discountVal = Math.min(100, Math.max(0, parseFloat(newLineDiscount) || 0));
+    const isDiscountOver = discountVal > tierDiscountLimit;
+
     return (
-      <div className="max-w-md mx-auto px-6 py-16">
+      <div className="max-w-4xl mx-auto px-4 py-10 space-y-6">
+        {/* Navigation back */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => navigate('/pipeline')}
+            className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back to Deal Pipeline</span>
+          </button>
+          <span className="text-xs bg-sky-50 text-sky-700 font-bold px-2.5 py-1 rounded-full border border-sky-200">
+            Quotation Builder v2.0
+          </span>
+        </div>
+
+        {/* Main Card */}
         <div className="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-[0_8px_30px_rgba(0,0,0,0.06)] space-y-6">
-          <div>
-            <div className="h-10 w-10 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold mb-3">
-              <Plus className="h-5 w-5" />
+          <div className="border-b border-slate-100 pb-5">
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="h-10 w-10 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold">
+                <FileText className="h-5 w-5" />
+              </div>
+              <div>
+                <h1 className="text-xl font-black text-slate-900 tracking-tight">New Quotation Panel</h1>
+                <p className="text-xs text-slate-500">
+                  Select customer account, configure contract terms, and add initial line items to persist as a draft.
+                </p>
+              </div>
             </div>
-            <h2 className="text-lg font-black text-slate-900 tracking-tight">Initiate New Quotation</h2>
-            <p className="text-xs text-slate-500 mt-1">Select an account to load contract tier rules and pricing floors.</p>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">
-                Customer Account
-              </label>
-              <select
-                value={selectedCustomerId}
-                onChange={(e) => setSelectedCustomerId(e.target.value)}
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500"
-              >
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.company_name} ({c.tier} Tier) — {c.name}
-                  </option>
-                ))}
-              </select>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Section: Account & Tier Rules */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                  1. Customer Account
+                </label>
+                <select
+                  value={selectedCustomerId}
+                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500"
+                >
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.company_name} ({c.tier} Tier) — {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedCustomer && (
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-700">Contract Tier &amp; Ceiling</span>
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                      selectedCustomer.tier === 'Gold' ? 'bg-amber-50 text-amber-800 border-amber-300' :
+                      selectedCustomer.tier === 'Silver' ? 'bg-slate-100 text-slate-800 border-slate-300' :
+                      'bg-orange-50 text-orange-800 border-orange-200'
+                    }`}>
+                      {selectedCustomer.tier} Tier
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    Standard discount ceiling for {selectedCustomer.tier} accounts is <strong className="text-slate-800">{tierDiscountLimit}%</strong>. Discounts beyond this ceiling will trigger multi-step managerial approval.
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                  2. Commercial Notes &amp; Payment Terms (Optional)
+                </label>
+                <textarea
+                  rows={3}
+                  value={newQuoteNotes}
+                  onChange={(e) => setNewQuoteNotes(e.target.value)}
+                  placeholder="e.g. Net-30 payment terms, 1-year annual contract, dedicated onboarding included..."
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+                />
+              </div>
             </div>
 
+            {/* Right Section: Initial Line Item (Optional) */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                  3. Initial Product Line (Optional)
+                </label>
+                <select
+                  value={selectedProductId}
+                  onChange={(e) => setSelectedProductId(e.target.value)}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500"
+                >
+                  <option value="">-- No initial product (Blank Canvas) --</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} [{p.category}] · ${p.base_price}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedProduct && (
+                <div className="p-4 rounded-2xl bg-sky-50/50 border border-sky-200/80 space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-900">{selectedProduct.name}</span>
+                    <span className="font-black text-sky-700">${selectedProduct.base_price}</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">
+                        Quantity
+                      </label>
+                      <div className="flex items-center border border-slate-200 rounded-xl bg-white overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setNewLineQty(Math.max(1, newLineQty - 1))}
+                          className="p-2 hover:bg-slate-100 text-slate-600 transition"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={newLineQty}
+                          onChange={(e) => setNewLineQty(parseInt(e.target.value) || 1)}
+                          className="w-full bg-transparent text-center text-xs font-bold focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setNewLineQty(newLineQty + 1)}
+                          className="p-2 hover:bg-slate-100 text-slate-600 transition"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1">
+                        Discount (%)
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={newLineDiscount}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === '' || (/^\d*\.?\d*$/.test(val) && parseFloat(val) <= 100)) {
+                              setNewLineDiscount(val);
+                            }
+                          }}
+                          placeholder="0"
+                          className="w-full p-2 pr-6 bg-white border border-slate-200 rounded-xl text-xs font-bold text-center focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">
+                          %
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-sky-100 flex items-center justify-between text-[11px]">
+                    <span className="text-slate-500">Discount Status:</span>
+                    {isDiscountOver ? (
+                      <span className="font-bold text-rose-600 flex items-center space-x-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        <span>OVER limit ({discountVal}% &gt; {tierDiscountLimit}%)</span>
+                      </span>
+                    ) : (
+                      <span className="font-bold text-emerald-600 flex items-center space-x-1">
+                        <Check className="h-3 w-3" />
+                        <span>Within Limit (≤{tierDiscountLimit}%)</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1.5 text-slate-600">
+                <div className="flex items-center space-x-2 font-bold text-slate-800">
+                  <Sparkles className="h-4 w-4 text-amber-500" />
+                  <span>Instant Database Persistence</span>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Saving will generate a permanent Quotation ID (<code className="text-sky-700">QT-XXXX</code>), register it on the Pipeline Kanban board, and save all line items and terms.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
             <button
-              onClick={handleCreateQuote}
-              disabled={saving}
-              className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs shadow-md transition-all"
+              type="button"
+              onClick={() => navigate('/pipeline')}
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-bold text-xs transition"
             >
-              {saving ? 'Creating...' : 'Open Quotation Canvas →'}
+              Cancel
             </button>
+
+            <div className="flex items-center space-x-3 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => handleCreateQuote(false)}
+                disabled={saving || !selectedCustomerId}
+                className="w-full sm:w-auto px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl font-bold text-xs shadow-sm hover:shadow transition flex items-center justify-center space-x-2 disabled:opacity-50"
+              >
+                <Save className="h-3.5 w-3.5 text-slate-600" />
+                <span>{saving ? 'Saving...' : 'Save Draft to Pipeline'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleCreateQuote(true)}
+                disabled={saving || !selectedCustomerId}
+                className="w-full sm:w-auto px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs shadow-md transition flex items-center justify-center space-x-2 disabled:opacity-50"
+              >
+                <span>{saving ? 'Creating...' : 'Open Quotation Canvas →'}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -200,6 +449,39 @@ export const QuoteBuilder: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+      {/* Top Breadcrumb & Status */}
+      <div className="flex items-center justify-between">
+        <Link
+          to="/pipeline"
+          className="inline-flex items-center space-x-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Back to Deal Pipeline</span>
+        </Link>
+        {isSaved && (
+          <span className="inline-flex items-center space-x-1 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+            <Check className="h-3 w-3" />
+            <span>Saved in Database</span>
+          </span>
+        )}
+      </div>
+
+      {/* Save Success Toast Banner */}
+      {saveSuccessMsg && (
+        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center justify-between text-xs font-semibold shadow-sm animate-in fade-in">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+            <span>{saveSuccessMsg}</span>
+          </div>
+          <button
+            onClick={() => setSaveSuccessMsg(null)}
+            className="text-emerald-700 hover:text-emerald-900 text-xs font-bold px-2 py-1 rounded-lg hover:bg-emerald-100"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Header Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
         <div>
@@ -219,6 +501,16 @@ export const QuoteBuilder: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-3">
+          <button
+            onClick={handleSaveDraft}
+            disabled={saving}
+            className="flex items-center space-x-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-4 py-2.5 rounded-xl font-bold text-xs shadow-sm hover:shadow transition-all disabled:opacity-50"
+            title="Save changes and quotation notes"
+          >
+            <Save className="h-3.5 w-3.5 text-slate-600" />
+            <span>{saving ? 'Saving...' : 'Save Draft'}</span>
+          </button>
+
           <button
             onClick={handleSubmitQuote}
             disabled={saving || quote.lines.length === 0}
@@ -459,6 +751,69 @@ export const QuoteBuilder: React.FC = () => {
                   + Add Line
                 </button>
               </div>
+            </div>
+          </div>
+
+          {/* Deal Notes & Commercial Terms Card */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,0,0,0.03)] p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <FileText className="h-4 w-4 text-sky-600" />
+                <h3 className="text-sm font-extrabold text-slate-900">Commercial Terms &amp; Deal Notes</h3>
+              </div>
+              <button
+                onClick={handleSaveDraft}
+                disabled={saving}
+                className="flex items-center space-x-1.5 text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-3 py-1.5 rounded-xl transition disabled:opacity-50"
+              >
+                <Save className="h-3.5 w-3.5" />
+                <span>{saving ? 'Saving...' : 'Save Notes'}</span>
+              </button>
+            </div>
+
+            <textarea
+              rows={3}
+              value={quoteNotes}
+              onChange={(e) => {
+                setQuoteNotes(e.target.value);
+                setIsSaved(false);
+              }}
+              placeholder="Specify commercial contract clauses, SLA requirements, billing terms (e.g., Net-30), custom shipping arrangements..."
+              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+            />
+
+            <div className="flex items-center space-x-2 flex-wrap gap-y-1.5 pt-1 text-[11px]">
+              <span className="text-slate-400 font-bold">Quick Presets:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuoteNotes((prev) => (prev ? `${prev} · Net-30 standard payment` : 'Net-30 standard payment'));
+                  setIsSaved(false);
+                }}
+                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition"
+              >
+                + Net-30 Terms
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuoteNotes((prev) => (prev ? `${prev} · 99.9% Enterprise SLA` : '99.9% Enterprise SLA guarantee'));
+                  setIsSaved(false);
+                }}
+                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition"
+              >
+                + Enterprise SLA
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuoteNotes((prev) => (prev ? `${prev} · Free onboarding bundle` : 'Free onboarding bundle included'));
+                  setIsSaved(false);
+                }}
+                className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition"
+              >
+                + Free Onboarding
+              </button>
             </div>
           </div>
         </div>

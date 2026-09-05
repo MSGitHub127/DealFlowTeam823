@@ -126,7 +126,7 @@ export const WorkspaceDashboard: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in duration-300">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-in fade-in duration-300 w-full overflow-x-hidden">
       {/* ==================== 1. TOP HEADER & CONTROL BAR ==================== */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6">
         <div>
@@ -389,7 +389,7 @@ export const WorkspaceDashboard: React.FC = () => {
       </div>
 
       {/* ==================== 2. HIGH-IMPACT KPI CARDS (TransitOps Style) ==================== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* KPI 1: Pipeline Value */}
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:border-sky-500/40 hover:shadow-md transition-all">
           <div className="flex items-center justify-between">

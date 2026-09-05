@@ -269,3 +269,41 @@ async def test_step_8_payment_and_invoice_update():
         updated_inv = next(i for i in inv_updated_res.json() if i["id"] == inv_id)
         assert updated_inv["status"] == "paid"
         assert updated_inv["paid_at"] is not None
+
+@pytest.mark.asyncio
+async def test_step_9_quotation_save_and_update():
+    """Step 9: Test saving a quotation draft and updating notes/fields via PATCH."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        login_res = await ac.post("/api/auth/login", json={"email": "rep@dealflow.com", "password": "rep123"})
+        token = login_res.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        cust_res = await ac.get("/api/auth/customers", headers=headers)
+        cust = cust_res.json()[0]
+
+        # Create draft quotation with initial notes
+        create_res = await ac.post("/api/quotations", json={
+            "customer_id": cust["id"],
+            "notes": "Initial draft proposal"
+        }, headers=headers)
+        assert create_res.status_code == 200
+        quote = create_res.json()
+        assert quote["status"] == "draft"
+        assert quote["notes"] == "Initial draft proposal"
+
+        # Update quotation notes and save draft via PATCH
+        patch_res = await ac.patch(f"/api/quotations/{quote['id']}", json={
+            "notes": "Updated commercial terms: Net-30, free onboarding included."
+        }, headers=headers)
+        assert patch_res.status_code == 200
+        patched = patch_res.json()
+        assert patched["notes"] == "Updated commercial terms: Net-30, free onboarding included."
+
+        # Verify persistence via GET
+        get_res = await ac.get(f"/api/quotations/{quote['id']}", headers=headers)
+        assert get_res.status_code == 200
+        persisted = get_res.json()
+        assert persisted["notes"] == "Updated commercial terms: Net-30, free onboarding included."
+        assert persisted["status"] == "draft"
+
