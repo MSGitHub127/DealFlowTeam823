@@ -1,5 +1,6 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { WorkspaceDashboard } from './pages/WorkspaceDashboard';
 import { PipelineKanban } from './pages/PipelineKanban';
@@ -11,29 +12,73 @@ import { CustomerPortal } from './pages/CustomerPortal';
 import { DealHealthView } from './pages/DealHealthView';
 import { ReportsView } from './pages/ReportsView';
 import { AdminConfigView } from './pages/AdminConfigView';
+import { Login } from './pages/Login';
 
 export const App: React.FC = () => {
+  const location = useLocation();
+  const { isAuthenticated } = useAuth();
+  const isLoginPage = location.pathname === '/login';
+
+  // Render Login page full-bleed with dark background and zero white margins/paddings
+  if (isLoginPage) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-white">
+        <Login />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
       <Navbar onReload={() => window.location.reload()} />
       <main className="flex-1 pb-16">
         <Routes>
-          {/* Internal Sales Ops Workspace */}
-          <Route path="/" element={<WorkspaceDashboard />} />
-          <Route path="/pipeline" element={<PipelineKanban />} />
-          <Route path="/quote/:id" element={<QuoteBuilder />} />
-          <Route path="/approvals" element={<ApprovalsList />} />
-          <Route path="/fulfillment" element={<FulfillmentView />} />
-          <Route path="/billing" element={<HybridBillingView />} />
-          <Route path="/deal-health" element={<DealHealthView />} />
-          <Route path="/reports" element={<ReportsView />} />
-          <Route path="/admin/rules" element={<AdminConfigView />} />
+          {/* Default entry: if not authenticated, immediately land on login page */}
+          <Route
+            path="/"
+            element={isAuthenticated ? <WorkspaceDashboard /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/pipeline"
+            element={isAuthenticated ? <PipelineKanban /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/quote/:id"
+            element={isAuthenticated ? <QuoteBuilder /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/approvals"
+            element={isAuthenticated ? <ApprovalsList /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/fulfillment"
+            element={isAuthenticated ? <FulfillmentView /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/billing"
+            element={isAuthenticated ? <HybridBillingView /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/deal-health"
+            element={isAuthenticated ? <DealHealthView /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/reports"
+            element={isAuthenticated ? <ReportsView /> : <Navigate to="/login" replace />}
+          />
+          <Route
+            path="/admin/rules"
+            element={isAuthenticated ? <AdminConfigView /> : <Navigate to="/login" replace />}
+          />
 
-          {/* Isolated Customer Portal */}
+          {/* Customer Portal is accessible with its own token authentication */}
           <Route path="/portal" element={<CustomerPortal />} />
 
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route
+            path="*"
+            element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />}
+          />
         </Routes>
       </main>
     </div>

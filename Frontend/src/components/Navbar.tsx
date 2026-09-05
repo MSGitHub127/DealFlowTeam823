@@ -6,11 +6,11 @@ import { UserRole } from '../types';
 import {
   LayoutDashboard, Kanban, ShieldCheck, Truck, CreditCard,
   HeartPulse, BarChart3, Settings, ExternalLink, RefreshCw,
-  Radio, Sparkles, ChevronDown
+  Radio, LogOut, Zap
 } from 'lucide-react';
 
 export const Navbar: React.FC<{ onReload?: () => void }> = ({ onReload }) => {
-  const { currentUser, currentRole, switchRole, customers } = useAuth();
+  const { currentUser, currentRole, customers, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [liveConnected, setLiveConnected] = useState<boolean>(true);
@@ -36,21 +36,12 @@ export const Navbar: React.FC<{ onReload?: () => void }> = ({ onReload }) => {
     { name: 'Admin Config', path: '/admin/rules', icon: Settings, roles: ['sales_manager', 'admin', 'finance_ops'] },
   ];
 
-  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const role = e.target.value as UserRole;
-    if (role === 'customer') {
-      const acme = customers.find(c => c.company_name.includes('Acme')) || customers[0];
-      if (acme) {
-        navigate(`/portal?token=${acme.portal_token}`);
-      } else {
-        navigate('/portal');
-      }
-    } else {
-      switchRole(role);
-    }
-  };
-
   const isPortal = location.pathname.startsWith('/portal');
+  const isLogin = location.pathname === '/login';
+
+  if (isLogin) {
+    return null;
+  }
 
   if (isPortal) {
     return (
@@ -89,26 +80,27 @@ export const Navbar: React.FC<{ onReload?: () => void }> = ({ onReload }) => {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-md text-slate-100 border-b border-slate-800/80 px-6 py-2.5 transition-all">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          {/* Brand */}
-          <div className="flex items-center space-x-7">
-            <Link to="/" className="flex items-center space-x-2.5 group">
-              <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-sky-500 to-sky-400 flex items-center justify-center text-white font-black text-xs shadow-md shadow-sky-500/20 transition-transform group-hover:scale-105">
-                360
+      <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-md text-slate-100 border-b border-slate-800/80 px-4 lg:px-6 py-2 transition-all">
+        <div className="flex items-center justify-between w-full max-w-[1600px] mx-auto flex-nowrap gap-2">
+          {/* Left: Brand & Navigation */}
+          <div className="flex items-center space-x-3 xl:space-x-5 flex-shrink-0 flex-nowrap">
+            {/* TransitOps Signature Logo */}
+            <Link to="/" className="flex items-center space-x-2 group flex-shrink-0">
+              <div className="h-8 w-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-[#c9822f] shadow-sm transition-transform group-hover:scale-105 flex-shrink-0">
+                <Zap className="h-4 w-4 text-[#c9822f]" />
               </div>
-              <div className="flex flex-col">
-                <div className="flex items-center space-x-1.5">
-                  <span className="font-black tracking-tight text-white text-base">DealFlow<span className="text-sky-400">360</span></span>
-                  <span className="text-[9px] uppercase font-bold tracking-widest text-sky-400/90 bg-sky-950/70 px-1.5 py-0.5 rounded-full border border-sky-800/60 hidden sm:inline-block">
-                    Engine
-                  </span>
-                </div>
+              <div className="flex items-baseline space-x-1.5">
+                <span className="font-['Caveat',cursive] text-2xl font-bold text-[#c9822f] tracking-wide leading-none select-none">
+                  DealFlow360
+                </span>
+                <span className="text-[9px] uppercase font-extrabold tracking-wider text-amber-400/80 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/50 hidden sm:inline-block">
+                  Engine
+                </span>
               </div>
             </Link>
 
-            {/* Nav Items */}
-            <nav className="hidden lg:flex items-center space-x-1">
+            {/* Nav Items (Strictly Single-Line with whitespace-nowrap) */}
+            <nav className="hidden lg:flex items-center space-x-0.5 xl:space-x-1 flex-nowrap">
               {navLinks.map((item) => {
                 if (item.roles && !item.roles.includes(currentRole)) {
                   return null;
@@ -119,25 +111,25 @@ export const Navbar: React.FC<{ onReload?: () => void }> = ({ onReload }) => {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    className={`whitespace-nowrap flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex-shrink-0 ${
                       isActive
-                        ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30 shadow-sm'
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-sm'
                         : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                     }`}
                   >
-                    <Icon className="h-3.5 w-3.5" />
-                    <span>{item.name}</span>
+                    <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span className="whitespace-nowrap">{item.name}</span>
                   </Link>
                 );
               })}
             </nav>
           </div>
 
-          {/* Right Controls & Role Switcher */}
-          <div className="flex items-center space-x-3">
+          {/* Right Controls & Role Display */}
+          <div className="flex items-center space-x-2 xl:space-x-2.5 flex-shrink-0 flex-nowrap">
             {/* Live Socket Indicator */}
-            <div className="hidden sm:flex items-center space-x-1.5 px-2 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-[11px] text-slate-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-soft-pulse"></span>
+            <div className="hidden sm:flex items-center space-x-1.5 px-2 py-1 rounded-full bg-slate-800/80 border border-slate-700/60 text-[11px] text-slate-400 flex-shrink-0">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
               <span className="text-[10px] font-semibold text-slate-300">Live</span>
             </div>
 
@@ -145,7 +137,7 @@ export const Navbar: React.FC<{ onReload?: () => void }> = ({ onReload }) => {
               <button
                 onClick={onReload}
                 title="Reload data from backend"
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition flex-shrink-0"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
               </button>
@@ -159,30 +151,45 @@ export const Navbar: React.FC<{ onReload?: () => void }> = ({ onReload }) => {
                   navigate(`/portal?token=${acme.portal_token}`);
                 }
               }}
-              className="hidden sm:flex items-center space-x-1.5 text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700/70 font-semibold transition"
+              className="hidden xl:flex items-center space-x-1.5 text-xs px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700/70 font-semibold transition whitespace-nowrap flex-shrink-0"
             >
               <ExternalLink className="h-3 w-3" />
-              <span>Customer Portal</span>
+              <span>Portal</span>
             </button>
 
-            {/* Role Switcher Pill */}
-            <div className="flex items-center space-x-2 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700/80 shadow-sm">
-              <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold hidden sm:inline">Role:</span>
-              <div className="relative flex items-center">
-                <select
-                  value={currentRole}
-                  onChange={handleRoleChange}
-                  className="bg-transparent text-xs font-bold text-white focus:outline-none cursor-pointer pr-4 appearance-none"
-                >
-                  <option value="sales_rep" className="bg-slate-900 text-white">Sales Rep (Alex)</option>
-                  <option value="sales_manager" className="bg-slate-900 text-white">Sales Manager (Morgan)</option>
-                  <option value="finance_ops" className="bg-slate-900 text-white">Finance/Ops (Taylor)</option>
-                  <option value="admin" className="bg-slate-900 text-white">Admin (Full Control)</option>
-                  <option value="customer" className="bg-slate-900 text-sky-400">Customer View (Portal)</option>
-                </select>
-                <ChevronDown className="h-3 w-3 text-slate-400 pointer-events-none absolute right-0" />
+            {/* Authentic Enterprise RBAC Role Badge */}
+            {currentRole === 'admin' ? (
+              <div className="flex items-center space-x-1.5 bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/30 shadow-sm flex-shrink-0">
+                <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
+                <span className="text-xs font-black text-amber-300 whitespace-nowrap">
+                  Administrator (Full Access)
+                </span>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center space-x-1.5 bg-slate-800/90 px-3 py-1.5 rounded-xl border border-slate-700/80 shadow-sm flex-shrink-0">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 flex-shrink-0" />
+                <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold hidden xl:inline">Role:</span>
+                <span className="text-xs font-bold text-white whitespace-nowrap">
+                  {currentRole === 'sales_rep' && 'Sales Rep (Alex)'}
+                  {currentRole === 'sales_manager' && 'Sales Manager (Morgan)'}
+                  {currentRole === 'finance_ops' && 'Finance/Ops (Taylor)'}
+                  {currentRole === 'customer' && 'Customer View'}
+                </span>
+              </div>
+            )}
+
+            {/* Sign Out to Login */}
+            <button
+              onClick={() => {
+                logout();
+                navigate('/login');
+              }}
+              title="Sign Out to Login Page"
+              className="flex items-center space-x-1.5 text-xs px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-rose-950/60 hover:border-rose-800/60 text-slate-300 hover:text-rose-300 border border-slate-700/80 font-medium transition whitespace-nowrap flex-shrink-0"
+            >
+              <LogOut className="h-3.5 w-3.5 text-rose-400 flex-shrink-0" />
+              <span className="hidden sm:inline font-medium">Sign Out</span>
+            </button>
           </div>
         </div>
       </header>

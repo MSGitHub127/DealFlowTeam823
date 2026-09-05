@@ -25,7 +25,7 @@ export const QuoteBuilder: React.FC = () => {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [newLineQty, setNewLineQty] = useState<number>(1);
-  const [newLineDiscount, setNewLineDiscount] = useState<number>(0);
+  const [newLineDiscount, setNewLineDiscount] = useState<string>('0');
 
   const init = async () => {
     setLoading(true);
@@ -81,16 +81,17 @@ export const QuoteBuilder: React.FC = () => {
     if (!quote || !selectedProductId) return;
     setSaving(true);
     try {
+      const discountVal = Math.min(100, Math.max(0, parseFloat(newLineDiscount) || 0));
       const res = await quotationsApi.addLine(quote.id, {
         product_id: selectedProductId,
         qty: newLineQty,
-        discount_pct: newLineDiscount
+        discount_pct: discountVal
       });
       setQuote(res.data);
       loadSuggestions(res.data.id);
       setSelectedProductId('');
       setNewLineQty(1);
-      setNewLineDiscount(0);
+      setNewLineDiscount('0');
     } catch (e) {
       console.error(e);
     } finally {
@@ -407,14 +408,46 @@ export const QuoteBuilder: React.FC = () => {
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
                   Discount (%)
                 </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={newLineDiscount}
-                  onChange={(e) => setNewLineDiscount(parseFloat(e.target.value) || 0)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-center focus:outline-none focus:ring-2 focus:ring-sky-500"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={newLineDiscount}
+                    onFocus={(e) => {
+                      if (newLineDiscount === '0') {
+                        setNewLineDiscount('');
+                      } else {
+                        e.target.select();
+                      }
+                    }}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '') {
+                        setNewLineDiscount('');
+                        return;
+                      }
+                      if (/^\d*\.?\d*$/.test(val)) {
+                        const num = parseFloat(val);
+                        if (isNaN(num) || num <= 100) {
+                          setNewLineDiscount(val);
+                        }
+                      }
+                    }}
+                    onBlur={() => {
+                      if (newLineDiscount === '' || isNaN(parseFloat(newLineDiscount))) {
+                        setNewLineDiscount('0');
+                      } else {
+                        const num = Math.min(100, Math.max(0, parseFloat(newLineDiscount)));
+                        setNewLineDiscount(num.toString());
+                      }
+                    }}
+                    placeholder="0"
+                    className="w-full p-2.5 pr-6 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-center focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400 pointer-events-none">
+                    %
+                  </span>
+                </div>
               </div>
 
               <div className="sm:col-span-1">
