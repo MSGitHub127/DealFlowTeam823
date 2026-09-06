@@ -37,7 +37,9 @@ export const App: React.FC = () => {
   const location = useLocation();
   const { isAuthenticated } = useAuth();
   const isLoginPage = location.pathname === "/login";
-  const isPortal = location.pathname.startsWith("/portal");
+  
+  // Update isPortal to check for both portal routes
+  const isPortal = location.pathname.startsWith("/portal") || location.pathname.startsWith("/customer-portal");
 
   if (isLoginPage) {
     return (
@@ -114,8 +116,11 @@ export const App: React.FC = () => {
               element={<ProtectedRoute roles={['admin']} element={<AdminConfigView />} />}
             />
 
+            {/* Customer Portal Routes */}
             <Route path="/portal" element={<CustomerPortal />} />
+            <Route path="/customer-portal" element={<CustomerPortal />} />
 
+            {/* Catch-all route should always be at the very bottom */}
             <Route
               path="*"
               element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />}

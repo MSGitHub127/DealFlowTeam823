@@ -14,9 +14,9 @@ export const Login: React.FC = () => {
 
   const [isSignUp, setIsSignUp] = useState(false);
 
-  // Sign In State
+  // Sign In State - Default password set to 123456
   const [email, setEmail] = useState('admin@dealflow.com');
-  const [password, setPassword] = useState('admin123');
+  const [password, setPassword] = useState('123456');
   
   // External Customer Sign Up State
   const [fullName, setFullName] = useState('');
@@ -35,13 +35,16 @@ export const Login: React.FC = () => {
     setTimeout(() => setSuccessToast(null), 3500);
   };
 
+  // FIX: Ab admin, manager, finance, rep ke alawa SABKO by default 'customer_user' maanega
   const getAssignedRole = (emailStr: string): UserRole => {
     const clean = emailStr.trim().toLowerCase();
     if (clean === 'admin@dealflow.com' || clean === 'admin') return 'admin';
     if (clean === 'manager@dealflow.com') return 'sales_manager';
     if (clean === 'finance@dealflow.com') return 'finance_ops';
-    if (clean.includes('customer') || clean === signUpEmail.trim().toLowerCase()) return 'customer_user';
-    return 'sales_rep';
+    if (clean === 'rep@dealflow.com') return 'sales_rep';
+    
+    // BAAKI SAB KO CUSTOMER MAAN LO
+    return 'customer_user';
   };
 
   // ==================== SIGN IN HANDLER ====================
@@ -62,23 +65,36 @@ export const Login: React.FC = () => {
       showToast('Authentication successful. Loading workspace...');
 
       setTimeout(() => {
-        // If logging in as a customer, route straight to Customer Portal
-        if (assignedRole === 'customer_user' || userResponse?.role === 'customer_user' || userResponse?.isCustomer) {
-          const token = userResponse?.portal_token || userResponse?.user?.portal_token || 'acme-corp-token-123';
-          navigate(`/portal?token=${token}`);
+        const activeRole = userResponse?.role || assignedRole;
+
+        // FIX: Admin, Rep, Manager, Finance ke alawa koi bhi ho, Customer Portal pe bhej do
+        if (activeRole === 'admin') {
+          navigate('/admin-config');
+        } else if (activeRole === 'sales_rep' || activeRole === 'sales_manager') {
+          navigate('/salesdashboard');
+        } else if (activeRole === 'finance_ops') {
+          navigate('/finance-dashboard');
         } else {
-          // Internal staff goes to main dashboard
-          navigate('/');
+          // DEFAULT FALLBACK -> Customer Portal
+          navigate('/customer-portal');
         }
       }, 400);
+
     } catch (err: any) {
       try {
         const assignedRole = getAssignedRole(email);
         await switchRole(assignedRole);
-        if (assignedRole === 'customer_user') {
-          navigate('/portal?token=acme-corp-token-123');
+        
+        // FIX: Same strict logic yahan bhi
+        if (assignedRole === 'admin') {
+          navigate('/admin-config');
+        } else if (assignedRole === 'sales_rep' || assignedRole === 'sales_manager') {
+          navigate('/salesdashboard');
+        } else if (assignedRole === 'finance_ops') {
+          navigate('/finance-dashboard');
         } else {
-          navigate('/');
+          // DEFAULT FALLBACK -> Customer Portal
+          navigate('/customer-portal');
         }
       } catch (switchErr) {
         setErrorMsg(err?.message || 'Authentication failed. Please check your credentials.');
