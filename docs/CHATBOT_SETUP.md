@@ -23,7 +23,7 @@ CHAT_RATE_LIMIT=30
 ```
 
 > **Note on Free-Tier Optimization**:
-> - If `GEMINI_API_KEY` is not provided or rate-limited, the system automatically falls back to deterministic, verified RAG and database responses without failing.
+> - `GEMINI_API_KEY` is required for the chatbot to generate answers. Without it (or if Gemini is rate-limited/unreachable), the chatbot fails safe with a "temporarily unavailable" message instead of ever returning raw RAG/database content as the final answer.
 > - Direct database lookups (e.g. quote status) format deterministically to save LLM tokens.
 
 ---

@@ -1,8 +1,11 @@
 import time
+import logging
 import httpx
 from typing import List, Dict, Any, Optional
 from app.config import settings
 from app.schemas.chat import SourceCitation
+
+logger = logging.getLogger("dealflow360.gemini")
 
 # Simple in-memory rate limiter
 class RateLimiter:
@@ -22,6 +25,7 @@ class RateLimiter:
 rate_limiter = RateLimiter(max_requests_per_minute=settings.CHAT_RATE_LIMIT)
 
 INSUFFICIENT_CONTEXT_FALLBACK = "I don't have enough verified DealFlow360 information to answer that."
+GEMINI_UNAVAILABLE_FALLBACK = "The DealFlow360 AI Assistant is temporarily unavailable. Please try again in a moment."
 
 def get_language_instruction(lang: str) -> str:
     if lang == "hi":
@@ -42,9 +46,11 @@ async def call_gemini_flash(
     """
     api_key = settings.GEMINI_API_KEY
     if not api_key:
+        logger.warning("GEMINI_API_KEY is not configured - chatbot cannot generate answers.")
         return None
 
     if not rate_limiter.allow_request():
+        logger.warning("Gemini rate limit reached for this instance; deferring request.")
         return None
 
     # Handle model name default (gemini-1.5-flash or user-configured)
@@ -81,8 +87,9 @@ async def call_gemini_flash(
                     parts = candidates[0].get("content", {}).get("parts", [])
                     if parts:
                         return parts[0].get("text", "").strip()
-    except Exception:
+    except Exception as exc:
         # Timeout or network error - safe fallback
+        logger.warning(f"Gemini Flash call failed: {exc}")
         return None
 
     return None
@@ -141,20 +148,11 @@ async def generate_grounded_response(
     top_rag_score = citations[0]["score"] if citations else (0.95 if has_biz else 0.50)
     confidence = round(min(0.99, max(0.50, top_rag_score)), 2)
 
-    # Free-tier optimization:
-    # If the user asked a pure business query and we have verified database records,
-    # generate deterministic response directly if simple, or use Gemini for conversational fluency.
-    if response_type == "business_data" and not settings.GEMINI_API_KEY:
-        answer_lines = [f"Here is your verified DealFlow360 business information:"]
-        answer_lines.append(business_context)
-        return {
-            "answer": "\n".join(answer_lines),
-            "language": language,
-            "grounded": True,
-            "confidence": confidence,
-            "response_type": response_type,
-            "sources": []
-        }
+    # Free-tier / safety note:
+    # We NEVER hand back raw RAG/DB context as the "answer" here. Gemini is the
+    # only component allowed to produce the final natural-language answer;
+    # if Gemini can't be reached, we fail safe (see fallback below) instead of
+    # dumping verified context straight to the user.
 
     lang_inst = get_language_instruction(language)
 
@@ -215,21 +213,15 @@ async def generate_grounded_response(
             "sources": citations
         }
 
-    # Safe Fallback when Gemini is offline / unconfigured / rate-limited:
-    # Synthesize factual direct answer from verified context chunks
-    fallback_parts = []
-    if has_biz:
-        fallback_parts.append(f"Here is your authorized DealFlow360 business data:\n{business_context}")
-    if has_rag:
-        fallback_parts.append(f"Based on DealFlow360 documentation:\n{rag_context}")
-
-    final_answer = "\n\n".join(fallback_parts) if fallback_parts else INSUFFICIENT_CONTEXT_FALLBACK
-
+    # Gemini is unreachable (missing API key, rate-limited, timeout, or network
+    # error). Fail safe: we do NOT dump raw RAG/DB context as a manufactured
+    # answer - that would violate "Gemini generates the final answer" and could
+    # leak verified context without the anti-hallucination/grounding pass.
     return {
-        "answer": final_answer,
+        "answer": GEMINI_UNAVAILABLE_FALLBACK,
         "language": language,
-        "grounded": True if fallback_parts else False,
-        "confidence": confidence if fallback_parts else 0.0,
-        "response_type": response_type if fallback_parts else "insufficient_context",
-        "sources": citations
+        "grounded": False,
+        "confidence": 0.0,
+        "response_type": "insufficient_context",
+        "sources": []
     }

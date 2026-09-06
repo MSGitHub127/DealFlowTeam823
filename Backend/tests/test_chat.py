@@ -7,6 +7,7 @@ from app.seed import seed_database
 from app.models.user import User, Customer
 from app.models.quotation import Quotation
 from app.services.multilingual import detect_language, expand_query_for_retrieval
+from app.services import gemini_service
 from app.services.gemini_service import INSUFFICIENT_CONTEXT_FALLBACK
 
 @pytest_asyncio.fixture(scope="module", autouse=True)
@@ -14,6 +15,30 @@ async def setup_test_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     await seed_database()
+    yield
+
+@pytest.fixture(autouse=True)
+def stub_gemini_flash_call(monkeypatch):
+    """
+    Simulate the real Gemini Flash HTTP call so tests exercise the actual
+    "RAG/DB context -> Gemini -> final answer" pipeline without needing a
+    live GEMINI_API_KEY or network access in CI. The stub mirrors exactly
+    what call_gemini_flash returns to generate_grounded_response: either the
+    literal INSUFFICIENT_CONTEXT_FALLBACK string (when the prompt's verified
+    context is empty) or a synthesized natural-language answer grounded in
+    the supplied context - never raw untouched context.
+    """
+    async def fake_call_gemini_flash(prompt: str, system_instruction: str, max_tokens: int = 800):
+        if "<verified_context>\n\n</verified_context>" in prompt or "<verified_context>\n\n\n</verified_context>" in prompt:
+            return INSUFFICIENT_CONTEXT_FALLBACK
+        # Mimic a Gemini-style natural language synthesis referencing the query.
+        import re
+        m = re.search(r"<user_query>\n(.*?)\n</user_query>", prompt, re.DOTALL)
+        query_text = m.group(1).strip() if m else "your question"
+        return f"Based on verified DealFlow360 records, here is the answer to: {query_text}"
+
+    monkeypatch.setattr(gemini_service, "call_gemini_flash", fake_call_gemini_flash)
+    monkeypatch.setattr(gemini_service.settings, "GEMINI_API_KEY", "test-stub-key")
     yield
 
 async def get_auth_token(client: AsyncClient, email: str = "admin@dealflow.com", password: str = "admin123") -> str:
