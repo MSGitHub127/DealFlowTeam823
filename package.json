@@ -1,0 +1,15 @@
+{
+  "name": "dealflow360",
+  "version": "1.0.0",
+  "description": "DealFlow360 — Self-governing sales operations platform",
+  "scripts": {
+    "dev": "concurrently \"npm --prefix frontend run dev\" \"cd backend && python -m uvicorn app.main:app --reload --port 8000\"",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "cd backend && python -m uvicorn app.main:app --reload --port 8000",
+    "test": "cd backend && python -m pytest -v tests/test_quick_flow.py",
+    "build": "npm --prefix frontend run build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

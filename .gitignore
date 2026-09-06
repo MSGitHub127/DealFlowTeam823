@@ -1,0 +1,71 @@
+# Dependencies
+node_modules/
+*/node_modules/
+.pnp
+.pnp.js
+
+# Production / Build Output
+dist/
+build/
+*/dist/
+*/build/
+
+# Python artifacts
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+myenv/
+*/myenv/
+*/*/myenv/
+env.bak/
+venv.bak/
+
+# Testing & Coverage
+.pytest_cache/
+*/.pytest_cache/
+.coverage
+htmlcov/
+
+# Local databases & SQLite
+*.db
+*.sqlite
+*.sqlite3
+dealflow360.db
+dealflow360.db-journal
+
+# Environment variables & secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Operating System & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker
+.docker/
+
+# Archives
+*.zip
+*.tar.gz
+

@@ -1,0 +1,270 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 720" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#0b1120" />
+    </linearGradient>
+
+    <!-- Card Gradients -->
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95" />
+    </linearGradient>
+
+    <linearGradient id="accentBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+
+    <linearGradient id="accentPurple" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#c084fc" />
+      <stop offset="100%" stop-color="#7c3aed" />
+    </linearGradient>
+
+    <linearGradient id="accentCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2dd4bf" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+
+    <linearGradient id="accentEmerald" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+
+    <linearGradient id="accentAmber" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+
+    <linearGradient id="accentRose" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fb7185" />
+      <stop offset="100%" stop-color="#e11d48" />
+    </linearGradient>
+
+    <!-- Filters & Shadows -->
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.45" />
+    </filter>
+
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Marker Arrowheads -->
+    <marker id="arrowCyan" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M 0 0 L 8 4 L 0 8 Z" fill="#38bdf8" />
+    </marker>
+    <marker id="arrowPurple" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M 0 0 L 8 4 L 0 8 Z" fill="#c084fc" />
+    </marker>
+    <marker id="arrowEmerald" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M 0 0 L 8 4 L 0 8 Z" fill="#34d399" />
+    </marker>
+  </defs>
+
+  <style>
+    .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-weight: 700; fill: #ffffff; }
+    .subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; fill: #94a3b8; }
+    .card-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; font-weight: 600; fill: #f8fafc; }
+    .card-badge { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
+    .card-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; fill: #cbd5e1; }
+    .pill-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 10px; font-weight: 500; fill: #94a3b8; }
+    .flow-label { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 600; fill: #38bdf8; }
+  </style>
+
+  <!-- Outer Canvas Container -->
+  <rect x="2" y="2" width="1116" height="716" rx="20" fill="url(#bgGrad)" stroke="#334155" stroke-width="1.5" />
+
+  <!-- Window Controls -->
+  <circle cx="36" cy="36" r="6" fill="#ef4444" />
+  <circle cx="56" cy="36" r="6" fill="#f59e0b" />
+  <circle cx="76" cy="36" r="6" fill="#10b981" />
+  
+  <text x="110" y="41" class="title" font-size="16">DealFlow360 — End-to-End System Architecture</text>
+  <text x="960" y="41" class="subtitle" text-anchor="end">Production Blueprint • FastAPI &amp; React 18</text>
+  <line x1="2" y1="60" x2="1118" y2="60" stroke="#1e293b" stroke-width="1" />
+
+  <!-- ==================== LAYER 1: PRESENTATION LAYER ==================== -->
+  <!-- Layer Label -->
+  <rect x="40" y="80" width="140" height="22" rx="6" fill="#1e293b" stroke="#334155" />
+  <text x="50" y="95" class="card-badge" fill="#38bdf8">1. CLIENT LAYER</text>
+
+  <!-- Box 1A: Internal Sales Workspace -->
+  <g filter="url(#cardShadow)">
+    <rect x="40" y="112" width="490" height="110" rx="14" fill="url(#cardGrad)" stroke="#38bdf8" stroke-width="1.5" />
+    <rect x="40" y="112" width="490" height="6" rx="3" fill="url(#accentBlue)" />
+    
+    <text x="60" y="142" class="card-title">🏢 Internal Sales Workspace</text>
+    <rect x="420" y="128" width="92" height="20" rx="10" fill="#0284c7" fill-opacity="0.2" stroke="#38bdf8" stroke-width="0.8" />
+    <text x="466" y="142" class="card-badge" fill="#38bdf8" text-anchor="middle">React 18 + TS</text>
+
+    <text x="60" y="165" class="card-text">TailwindCSS • Vite • 18 Dynamic Sales-Ops Views • Glassmorphic UI</text>
+    
+    <!-- Pills -->
+    <rect x="60" y="180" width="85" height="22" rx="6" fill="#1e293b" />
+    <text x="102" y="195" class="pill-text" text-anchor="middle">Quote Builder</text>
+    
+    <rect x="152" y="180" width="95" height="22" rx="6" fill="#1e293b" />
+    <text x="199" y="195" class="pill-text" text-anchor="middle">Pipeline Kanban</text>
+
+    <rect x="254" y="180" width="95" height="22" rx="6" fill="#1e293b" />
+    <text x="301" y="195" class="pill-text" text-anchor="middle">Approvals Inbox</text>
+
+    <rect x="356" y="180" width="85" height="22" rx="6" fill="#1e293b" />
+    <text x="398" y="195" class="pill-text" text-anchor="middle">Hybrid Billing</text>
+
+    <rect x="448" y="180" width="65" height="22" rx="6" fill="#1e293b" />
+    <text x="480" y="195" class="pill-text" text-anchor="middle">Reports</text>
+  </g>
+
+  <!-- Box 1B: Customer Negotiation Portal -->
+  <g filter="url(#cardShadow)">
+    <rect x="590" y="112" width="490" height="110" rx="14" fill="url(#cardGrad)" stroke="#c084fc" stroke-width="1.5" />
+    <rect x="590" y="112" width="490" height="6" rx="3" fill="url(#accentPurple)" />
+
+    <text x="610" y="142" class="card-title">🌐 Customer Negotiation Portal</text>
+    <rect x="965" y="128" width="98" height="20" rx="10" fill="#7c3aed" fill-opacity="0.2" stroke="#c084fc" stroke-width="0.8" />
+    <text x="1014" y="142" class="card-badge" fill="#c084fc" text-anchor="middle">Isolated DTO</text>
+
+    <text x="610" y="165" class="card-text">External Self-Service • Zero Margin Exposure • Secure Magic Token Link</text>
+
+    <!-- Pills -->
+    <rect x="610" y="180" width="105" height="22" rx="6" fill="#1e293b" />
+    <text x="662" y="195" class="pill-text" text-anchor="middle">Live Negotiation</text>
+
+    <rect x="722" y="180" width="105" height="22" rx="6" fill="#1e293b" />
+    <text x="774" y="195" class="pill-text" text-anchor="middle">Counter-Proposals</text>
+
+    <rect x="834" y="180" width="105" height="22" rx="6" fill="#1e293b" />
+    <text x="886" y="195" class="pill-text" text-anchor="middle">E-Signing Sheet</text>
+
+    <rect x="946" y="180" width="115" height="22" rx="6" fill="#1e293b" />
+    <text x="1003" y="195" class="pill-text" text-anchor="middle">Order Confirmation</text>
+  </g>
+
+  <!-- Connectors: Layer 1 -> Layer 2 -->
+  <path d="M 285 222 L 285 260 L 520 260 L 520 274" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowCyan)" />
+  <rect x="295" y="245" width="170" height="18" rx="4" fill="#0f172a" stroke="#1e293b" />
+  <text x="380" y="258" class="pill-text" fill="#38bdf8" text-anchor="middle">REST &amp; Live WebSocket Sync</text>
+
+  <path d="M 835 222 L 835 260 L 600 260 L 600 274" fill="none" stroke="#c084fc" stroke-width="2" marker-end="url(#arrowPurple)" />
+  <rect x="655" y="245" width="170" height="18" rx="4" fill="#0f172a" stroke="#1e293b" />
+  <text x="740" y="258" class="pill-text" fill="#c084fc" text-anchor="middle">Signed Magic Token Requests</text>
+
+  <!-- ==================== LAYER 2: API GATEWAY & WEBSOCKET HUB ==================== -->
+  <g filter="url(#cardShadow)">
+    <rect x="220" y="280" width="680" height="74" rx="14" fill="url(#cardGrad)" stroke="#2dd4bf" stroke-width="1.8" />
+    <rect x="220" y="280" width="680" height="5" rx="2" fill="url(#accentCyan)" />
+
+    <text x="245" y="312" class="card-title">⚡ FastAPI Application Gateway &amp; WebSocket Broker</text>
+    <rect x="780" y="295" width="100" height="20" rx="10" fill="#0d9488" fill-opacity="0.2" stroke="#2dd4bf" stroke-width="0.8" />
+    <text x="830" y="309" class="card-badge" fill="#2dd4bf" text-anchor="middle">Async Core</text>
+
+    <text x="245" y="334" class="card-text">JWT Authentication Guard • RBAC Middleware • Dynamic Route Dispatcher • Native WebSocket Manager (/api/ws)</text>
+  </g>
+
+  <!-- Connectors: Layer 2 -> Layer 3 -->
+  <path d="M 560 354 L 560 395" fill="none" stroke="#2dd4bf" stroke-width="2" marker-end="url(#arrowCyan)" />
+
+  <!-- ==================== LAYER 3: CORE SALES-OPS ENGINES ==================== -->
+  <!-- Layer Label -->
+  <rect x="40" y="375" width="160" height="22" rx="6" fill="#1e293b" stroke="#334155" />
+  <text x="50" y="390" class="card-badge" fill="#34d399">2. CORE ENGINES</text>
+
+  <!-- Engine 1: Blended Risk -->
+  <g filter="url(#cardShadow)">
+    <rect x="40" y="405" width="196" height="135" rx="12" fill="url(#cardGrad)" stroke="#10b981" stroke-width="1.2" />
+    <rect x="40" y="405" width="196" height="4" rx="2" fill="url(#accentEmerald)" />
+    <text x="55" y="432" class="card-title">🎯 Blended Risk</text>
+    <text x="55" y="452" class="card-badge" fill="#34d399">TIER &amp; CAT CEILINGS</text>
+    <text x="55" y="475" class="card-text">• min(tier, category)</text>
+    <text x="55" y="493" class="card-text">• Line &amp; Total Excess</text>
+    <text x="55" y="511" class="card-text">• Risk Bands (NONE/M/H)</text>
+    <text x="55" y="527" class="card-text">• Auto-routes L1/L2</text>
+  </g>
+
+  <!-- Engine 2: Warehouse Split -->
+  <g filter="url(#cardShadow)">
+    <rect x="252" y="405" width="196" height="135" rx="12" fill="url(#cardGrad)" stroke="#f59e0b" stroke-width="1.2" />
+    <rect x="252" y="405" width="196" height="4" rx="2" fill="url(#accentAmber)" />
+    <text x="267" y="432" class="card-title">📦 Warehouse Split</text>
+    <text x="267" y="452" class="card-badge" fill="#fbbf24">GREEDY ALLOCATOR</text>
+    <text x="267" y="475" class="card-text">• Cost-weighted sorting</text>
+    <text x="267" y="493" class="card-text">• 1-Shipment optimization</text>
+    <text x="267" y="511" class="card-text">• Multi-depot greedy split</text>
+    <text x="267" y="527" class="card-text">• Backorder generation</text>
+  </g>
+
+  <!-- Engine 3: Hybrid Billing -->
+  <g filter="url(#cardShadow)">
+    <rect x="464" y="405" width="196" height="135" rx="12" fill="url(#cardGrad)" stroke="#38bdf8" stroke-width="1.2" />
+    <rect x="464" y="405" width="196" height="4" rx="2" fill="url(#accentBlue)" />
+    <text x="479" y="432" class="card-title">💳 Hybrid Billing</text>
+    <text x="479" y="452" class="card-badge" fill="#38bdf8">PRORATION MATH</text>
+    <text x="479" y="475" class="card-text">• Invoice upon dispatch</text>
+    <text x="479" y="493" class="card-text">• Hardware + SaaS split</text>
+    <text x="479" y="511" class="card-text">• Mid-cycle seat proration</text>
+    <text x="479" y="527" class="card-text">• Credit note issuance</text>
+  </g>
+
+  <!-- Engine 4: Deal Health Radar -->
+  <g filter="url(#cardShadow)">
+    <rect x="676" y="405" width="196" height="135" rx="12" fill="url(#cardGrad)" stroke="#fb7185" stroke-width="1.2" />
+    <rect x="676" y="405" width="196" height="4" rx="2" fill="url(#accentRose)" />
+    <text x="691" y="432" class="card-title">🛡️ Deal Health</text>
+    <text x="691" y="452" class="card-badge" fill="#fb7185">ANOMALY SCANNER</text>
+    <text x="691" y="475" class="card-text">• Stalled quotes (&gt;7 days)</text>
+    <text x="691" y="493" class="card-text">• 1.4x rep discount leak</text>
+    <text x="691" y="511" class="card-text">• Delivery ETA slippage</text>
+    <text x="691" y="527" class="card-text">• Live WebSocket alerts</text>
+  </g>
+
+  <!-- Engine 5: Audit Trail -->
+  <g filter="url(#cardShadow)">
+    <rect x="888" y="405" width="192" height="135" rx="12" fill="url(#cardGrad)" stroke="#c084fc" stroke-width="1.2" />
+    <rect x="888" y="405" width="192" height="4" rx="2" fill="url(#accentPurple)" />
+    <text x="903" y="432" class="card-title">📜 Audit Trail</text>
+    <text x="903" y="452" class="card-badge" fill="#c084fc">IMMUTABLE LOG</text>
+    <text x="903" y="475" class="card-text">• Append-only SOX/GAAP</text>
+    <text x="903" y="493" class="card-text">• State transition hashes</text>
+    <text x="903" y="511" class="card-text">• Actor &amp; timestamp logs</text>
+    <text x="903" y="527" class="card-text">• Full payload diffs</text>
+  </g>
+
+  <!-- Connectors: Layer 3 -> Layer 4 -->
+  <path d="M 350 540 L 350 575" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrowCyan)" />
+  <path d="M 774 540 L 774 575" fill="none" stroke="#fb7185" stroke-width="2" marker-end="url(#arrowEmerald)" />
+
+  <!-- ==================== LAYER 4: PERSISTENCE & SCHEDULER ==================== -->
+  <!-- Layer Label -->
+  <rect x="40" y="560" width="190" height="22" rx="6" fill="#1e293b" stroke="#334155" />
+  <text x="50" y="575" class="card-badge" fill="#94a3b8">3. DATA &amp; BACKGROUND</text>
+
+  <!-- Box 4A: Database Persistence -->
+  <g filter="url(#cardShadow)">
+    <rect x="40" y="590" width="620" height="100" rx="14" fill="url(#cardGrad)" stroke="#334155" stroke-width="1.5" />
+    <rect x="40" y="590" width="620" height="4" rx="2" fill="url(#accentBlue)" />
+    <text x="65" y="622" class="card-title">💾 Dual-Dialect Storage Layer</text>
+    <rect x="525" y="605" width="115" height="20" rx="10" fill="#2563eb" fill-opacity="0.2" stroke="#38bdf8" stroke-width="0.8" />
+    <text x="582" y="619" class="card-badge" fill="#38bdf8" text-anchor="middle">SQLAlchemy 2.0</text>
+
+    <text x="65" y="646" class="card-text">PostgreSQL 16 (Production / Docker via asyncpg) • SQLite + aiosqlite (Instant Local &amp; Pytest Isolation)</text>
+    <text x="65" y="668" class="card-text">Alembic Automated Versioned Migrations • Declarative Schema Constraints • ACID Row-Level MVCC</text>
+  </g>
+
+  <!-- Box 4B: Background Cron Scheduler -->
+  <g filter="url(#cardShadow)">
+    <rect x="690" y="590" width="390" height="100" rx="14" fill="url(#cardGrad)" stroke="#334155" stroke-width="1.5" />
+    <rect x="690" y="590" width="390" height="4" rx="2" fill="url(#accentEmerald)" />
+    <text x="715" y="622" class="card-title">⏰ Periodic Task Worker</text>
+    <rect x="965" y="605" width="95" height="20" rx="10" fill="#059669" fill-opacity="0.2" stroke="#34d399" stroke-width="0.8" />
+    <text x="1012" y="619" class="card-badge" fill="#34d399" text-anchor="middle">APScheduler</text>
+
+    <text x="715" y="646" class="card-text">Hourly Asynchronous Background Scanners</text>
+    <text x="715" y="668" class="card-text">Triggers deal_health_engine.py • Broadcasts alerts to WebSocket</text>
+  </g>
+
+</svg>
