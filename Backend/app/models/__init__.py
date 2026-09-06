@@ -8,11 +8,9 @@ from app.models.approval import ApprovalRequest, ApprovalStep, AuditLog
 from app.models.fulfillment import FulfillmentOrder, FulfillmentSplitLine, BackorderLine
 from app.models.billing import SubscriptionPlan, Subscription, Invoice, InvoiceLine, Payment, CreditNote
 from app.models.deal_health import DealHealthAlert, RepMetric
-from app.models.chat import ChatMessage
 
 __all__ = [
     "Base",
-    "ChatMessage",
     "User",
     "Customer",
     "Product",

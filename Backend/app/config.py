@@ -28,16 +28,6 @@ class Settings(BaseSettings):
     # Anomaly threshold multiplier (e.g. 1.5x rep trailing avg)
     ANOMALY_MULTIPLIER: float = 1.4
 
-    # Chatbot & Gemini Flash Configuration
-    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
-    CHAT_TOP_K: int = int(os.getenv("CHAT_TOP_K", "3"))
-    CHAT_MIN_RELEVANCE: float = float(os.getenv("CHAT_MIN_RELEVANCE", "0.70"))
-    CHAT_MAX_CONTEXT_CHARS: int = int(os.getenv("CHAT_MAX_CONTEXT_CHARS", "4000"))
-    CHAT_MAX_HISTORY: int = int(os.getenv("CHAT_MAX_HISTORY", "6"))
-    CHAT_MAX_OUTPUT_TOKENS: int = int(os.getenv("CHAT_MAX_OUTPUT_TOKENS", "800"))
-    CHAT_RATE_LIMIT: int = int(os.getenv("CHAT_RATE_LIMIT", "30"))
-
     model_config = SettingsConfigDict(case_sensitive=True)
 
 settings = Settings()

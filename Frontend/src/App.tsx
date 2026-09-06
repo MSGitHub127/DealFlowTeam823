@@ -14,7 +14,6 @@ import { DealHealthView } from "./pages/DealHealthView";
 import { ReportsView } from "./pages/ReportsView";
 import { AdminConfigView } from "./pages/AdminConfigView";
 import { Login } from "./pages/Login";
-import { Chatbot } from "./components/Chatbot/Chatbot";
 import { UserRole } from "./types";
 
 interface ProtectedRouteProps {
@@ -38,7 +37,9 @@ export const App: React.FC = () => {
   const location = useLocation();
   const { isAuthenticated } = useAuth();
   const isLoginPage = location.pathname === "/login";
-  const isPortal = location.pathname.startsWith("/portal");
+  
+  // Update isPortal to check for both portal routes
+  const isPortal = location.pathname.startsWith("/portal") || location.pathname.startsWith("/customer-portal");
 
   if (isLoginPage) {
     return (
@@ -115,8 +116,11 @@ export const App: React.FC = () => {
               element={<ProtectedRoute roles={['admin']} element={<AdminConfigView />} />}
             />
 
+            {/* Customer Portal Routes */}
             <Route path="/portal" element={<CustomerPortal />} />
+            <Route path="/customer-portal" element={<CustomerPortal />} />
 
+            {/* Catch-all route should always be at the very bottom */}
             <Route
               path="*"
               element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />}
@@ -124,9 +128,6 @@ export const App: React.FC = () => {
           </Routes>
         </main>
       </div>
-
-      {/* Floating DealFlow360 Multilingual AI Assistant */}
-      <Chatbot />
     </div>
   );
 };

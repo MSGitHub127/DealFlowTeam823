@@ -10,12 +10,11 @@ export interface User {
 
 export interface Customer {
   id: string;
-  name?: string;
+  name: string;
   company_name: string;
-  email?: string;
+  email: string;
   phone?: string;
-  tier: 'Bronze' | 'Silver' | 'Gold' | 'enterprise' | 'mid_market' | 'smb' | string;
-  region?: string;
+  tier: 'Bronze' | 'Silver' | 'Gold';
   portal_token: string;
 }
 
@@ -40,14 +39,14 @@ export interface Product {
   id: string;
   name: string;
   sku: string;
-  category: 'Hardware' | 'Services' | 'Subscriptions' | 'Accessories' | 'Software' | string;
+  category: 'Hardware' | 'Services' | 'Subscriptions';
   base_price: number;
   cost_price: number;
-  unit?: string;
-  tax_rate?: number;
+  unit: string;
+  tax_rate: number;
   description?: string;
-  is_subscription?: boolean;
-  is_active?: boolean;
+  is_subscription: boolean;
+  is_active: boolean;
   variants?: ProductVariant[];
   price_entries?: PriceListEntry[];
 }
@@ -124,7 +123,6 @@ export interface Quotation {
   created_at: string;
   updated_at: string;
   lines: QuotationLine[];
-  items?: QuotationLine[];
   negotiation_comments?: NegotiationComment[];
 }
 

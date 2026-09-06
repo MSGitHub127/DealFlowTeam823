@@ -14,15 +14,6 @@ import pytest
 @pytest.fixture(scope="session", autouse=True)
 def _cleanup_test_db():
     yield
-    try:
-        from app.database import engine
-        import asyncio
-        asyncio.run(engine.dispose())
-    except Exception:
-        pass
     path = _TEST_DB_PATH.lstrip("./")
-    try:
-        if os.path.exists(path):
-            os.remove(path)
-    except Exception:
-        pass
+    if os.path.exists(path):
+        os.remove(path)
