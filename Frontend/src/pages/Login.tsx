@@ -40,12 +40,15 @@ export const Login: React.FC = () => {
     if (clean === 'admin@dealflow.com' || clean === 'admin') return 'admin';
     if (clean === 'manager@dealflow.com') return 'sales_manager';
     if (clean === 'finance@dealflow.com') return 'finance_ops';
+    if (clean.includes('customer') || clean === signUpEmail.trim().toLowerCase()) return 'customer_user';
     return 'sales_rep';
   };
 
+  // ==================== SIGN IN HANDLER ====================
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    
     if (!email || !password) {
       setErrorMsg('Please enter both email and password.');
       return;
@@ -54,44 +57,68 @@ export const Login: React.FC = () => {
     setLoading(true);
     try {
       const assignedRole = getAssignedRole(email);
-      await login(email, password, assignedRole);
+      const userResponse: any = await login(email, password, assignedRole);
+      
       showToast('Authentication successful. Loading workspace...');
+
       setTimeout(() => {
-        navigate('/');
+        // If logging in as a customer, route straight to Customer Portal
+        if (assignedRole === 'customer_user' || userResponse?.role === 'customer_user' || userResponse?.isCustomer) {
+          const token = userResponse?.portal_token || userResponse?.user?.portal_token || 'acme-corp-token-123';
+          navigate(`/portal?token=${token}`);
+        } else {
+          // Internal staff goes to main dashboard
+          navigate('/');
+        }
       }, 400);
     } catch (err: any) {
-      const assignedRole = getAssignedRole(email);
-      await switchRole(assignedRole);
-      navigate('/');
+      try {
+        const assignedRole = getAssignedRole(email);
+        await switchRole(assignedRole);
+        if (assignedRole === 'customer_user') {
+          navigate('/portal?token=acme-corp-token-123');
+        } else {
+          navigate('/');
+        }
+      } catch (switchErr) {
+        setErrorMsg(err?.message || 'Authentication failed. Please check your credentials.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  // ==================== CUSTOMER SIGN UP HANDLER ====================
   const handleCustomerSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
     if (!fullName || !signUpEmail || !signUpPassword) {
-      setErrorMsg('Please fill in all required fields.');
+      setErrorMsg('Please complete all required fields.');
       return;
     }
 
     setLoading(true);
     try {
-      // External signup creates Customer Accounts
       await signup({
         name: fullName,
         email: signUpEmail,
         company: company || 'Customer Organization',
         password: signUpPassword,
-        role: 'sales_rep', // Default basic scope for self-registration
+        role: 'customer_user',
         tier: 'smb'
       });
-      showToast('Customer account created! Redirecting to portal...');
-      setTimeout(() => {
-        navigate('/');
-      }, 500);
+
+      showToast('Account created! Please log in with your credentials.');
+
+      // Autofill email into login form & switch to Sign In view
+      setEmail(signUpEmail);
+      setPassword('');
+      setFullName('');
+      setCompany('');
+      setSignUpEmail('');
+      setSignUpPassword('');
+      setIsSignUp(false);
     } catch (err: any) {
       setErrorMsg(err?.message || 'Failed to register customer account.');
     } finally {
