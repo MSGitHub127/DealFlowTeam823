@@ -74,6 +74,7 @@ export const quotationsApi = {
   list: (status?: string, rep_id?: string) => api.get<Quotation[]>('/quotations', { params: { status, rep_id } }),
   get: (id: string) => api.get<Quotation>(`/quotations/${id}`),
   create: (data: any) => api.post<Quotation>('/quotations', data),
+  update: (id: string, data: any) => api.patch<Quotation>(`/quotations/${id}`, data),
   addLine: (id: string, data: any) => api.post<Quotation>(`/quotations/${id}/lines`, data),
   deleteLine: (id: string, lineId: string) => api.delete<Quotation>(`/quotations/${id}/lines/${lineId}`),
   submit: (id: string) => api.post<Quotation>(`/quotations/${id}/submit`),

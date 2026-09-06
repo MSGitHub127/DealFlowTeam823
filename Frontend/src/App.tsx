@@ -63,6 +63,7 @@ export const App: React.FC = () => {
         className={`flex-1 transition-all duration-300 min-w-0 bg-[#F8FAFC] ${
           isPortal ? "pl-0" : isCollapsed ? "pl-20" : "pl-64"
         }`}
+        style={{ overscrollBehavior: 'none', overscrollBehaviorY: 'none' }}
       >
         <main className={isPortal ? "" : "p-4 sm:p-6 pb-16"}>
           <Routes>

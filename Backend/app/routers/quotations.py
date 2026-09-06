@@ -13,7 +13,7 @@ from app.models.rules import UpsellRule, ApprovalRule
 from app.models.approval import ApprovalRequest, ApprovalStep
 from app.models.billing import SubscriptionPlan
 from app.schemas.quotation import (
-    QuotationCreate, QuotationOut, QuotationLineCreate, QuotationLineOut,
+    QuotationCreate, QuotationUpdate, QuotationOut, QuotationLineCreate, QuotationLineOut,
     UpsellSuggestionOut
 )
 from app.routers.auth import get_current_user
@@ -217,6 +217,8 @@ async def create_quotation(
             db.add(line)
         await db.flush()
 
+    quotation_pk = quote.id
+    db.expire_all()
     # Reload and recalculate
     res = await db.execute(
         select(Quotation)
@@ -227,13 +229,70 @@ async def create_quotation(
             selectinload(Quotation.lines).selectinload(QuotationLine.variant),
             selectinload(Quotation.lines).selectinload(QuotationLine.subscription_plan)
         )
-        .where(Quotation.id == quote.id)
+        .where(Quotation.id == quotation_pk)
     )
     quote = res.scalars().first()
     await _recalculate_quotation(db, quote)
     await db.commit()
     await create_audit_log(db, "quotation", quote.id, "create", user, f"Created quotation #{quote.quote_number}")
     return _format_quote_out(quote)
+
+@router.patch("/{quotation_id}", response_model=QuotationOut)
+@router.put("/{quotation_id}", response_model=QuotationOut)
+async def update_quotation(
+    quotation_id: str,
+    req: QuotationUpdate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    res = await db.execute(
+        select(Quotation)
+        .options(
+            selectinload(Quotation.customer),
+            selectinload(Quotation.rep),
+            selectinload(Quotation.lines).selectinload(QuotationLine.product),
+            selectinload(Quotation.lines).selectinload(QuotationLine.variant),
+            selectinload(Quotation.lines).selectinload(QuotationLine.subscription_plan)
+        )
+        .where(Quotation.id == quotation_id)
+    )
+    quote = res.scalars().first()
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quotation not found")
+
+    if req.notes is not None:
+        quote.notes = req.notes
+    if req.status is not None:
+        quote.status = req.status
+    if req.customer_id is not None and req.customer_id != quote.customer_id:
+        cust_res = await db.execute(select(Customer).where(Customer.id == req.customer_id))
+        cust = cust_res.scalars().first()
+        if not cust:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        quote.customer_id = cust.id
+        quote.customer = cust
+
+    quote.last_activity_at = utcnow()
+    await _recalculate_quotation(db, quote)
+    await db.commit()
+    await create_audit_log(db, "quotation", quote.id, "update", user, f"Saved/Updated quotation #{quote.quote_number}")
+
+    # Reload cleanly to return fresh QuotationOut
+    db.expire_all()
+    res = await db.execute(
+        select(Quotation)
+        .options(
+            selectinload(Quotation.customer),
+            selectinload(Quotation.rep),
+            selectinload(Quotation.lines).selectinload(QuotationLine.product),
+            selectinload(Quotation.lines).selectinload(QuotationLine.variant),
+            selectinload(Quotation.lines).selectinload(QuotationLine.subscription_plan)
+        )
+        .where(Quotation.id == quotation_id)
+    )
+    quote = res.scalars().first()
+    return _format_quote_out(quote)
+
 
 @router.post("/{quotation_id}/lines", response_model=QuotationOut)
 async def add_or_update_line(

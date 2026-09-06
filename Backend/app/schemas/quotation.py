@@ -62,6 +62,7 @@ class QuotationCreate(BaseModel):
     lines: Optional[List[QuotationLineCreate]] = None
 
 class QuotationUpdate(BaseModel):
+    customer_id: Optional[str] = None
     notes: Optional[str] = None
     status: Optional[str] = None
 
