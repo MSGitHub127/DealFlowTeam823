@@ -135,3 +135,9 @@ class UpsellSuggestionOut(BaseModel):
     margin_delta_pct: float
     is_promoted: bool
     reason: Optional[str] = None
+
+
+class QuotationCreate(BaseModel):
+    customer_id: str
+    notes: Optional[str] = None
+    lines: Optional[List[QuotationLineCreate]] = []

@@ -4,6 +4,7 @@ import { useAuth } from "./context/AuthContext";
 import { Navbar } from "./components/Navbar";
 import { WorkspaceDashboard } from "./pages/WorkspaceDashboard";
 import { PipelineKanban } from "./pages/PipelineKanban";
+import { QuotesDirectory } from "./pages/QuotesDirectory";
 import { QuoteBuilder } from "./pages/QuoteBuilder";
 import { ApprovalsList } from "./pages/ApprovalsList";
 import { FulfillmentView } from "./pages/FulfillmentView";
@@ -38,18 +39,17 @@ export const App: React.FC = () => {
   const isLoginPage = location.pathname === "/login";
   const isPortal = location.pathname.startsWith("/portal");
 
-  // Render Login page full-bleed with dark background
   if (isLoginPage) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-white">
+      <div className="min-h-screen bg-[#F8FAFC] text-slate-900 antialiased selection:bg-blue-600 selection:text-white">
         <Login />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex">
-      {/* Vertical Collapsible Sidebar */}
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex">
+      {/* Sidebar Navigation */}
       {!isPortal && (
         <Navbar
           onReload={() => window.location.reload()}
@@ -58,15 +58,14 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* Main Content Area - Dynamic Padding for Collapsible Sidebar */}
+      {/* Main Content Viewport */}
       <div
-        className={`flex-1 transition-all duration-300 min-w-0 ${
+        className={`flex-1 transition-all duration-300 min-w-0 bg-[#F8FAFC] ${
           isPortal ? "pl-0" : isCollapsed ? "pl-20" : "pl-64"
         }`}
       >
-        <main className={isPortal ? "" : "p-6 pb-16"}>
+        <main className={isPortal ? "" : "p-4 sm:p-6 pb-16"}>
           <Routes>
-            {/* Internal Sales Ops Workspace with RBAC guards */}
             <Route
               path="/"
               element={<ProtectedRoute element={<WorkspaceDashboard />} />}
@@ -74,6 +73,16 @@ export const App: React.FC = () => {
             <Route
               path="/pipeline"
               element={<ProtectedRoute roles={['sales_rep', 'sales_manager', 'admin']} element={<PipelineKanban />} />}
+            />
+            {/* Dedicated Quotations Directory Route */}
+            <Route
+              path="/quotes"
+              element={<ProtectedRoute roles={['sales_rep', 'sales_manager', 'admin']} element={<QuotesDirectory />} />}
+            />
+            {/* CPQ Studio Builder Routes */}
+            <Route
+              path="/quote/new"
+              element={<ProtectedRoute roles={['sales_rep', 'sales_manager', 'admin']} element={<QuoteBuilder />} />}
             />
             <Route
               path="/quote/:id"
@@ -104,10 +113,8 @@ export const App: React.FC = () => {
               element={<ProtectedRoute roles={['admin']} element={<AdminConfigView />} />}
             />
 
-            {/* Isolated Customer Portal */}
             <Route path="/portal" element={<CustomerPortal />} />
 
-            {/* Fallback */}
             <Route
               path="*"
               element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />}

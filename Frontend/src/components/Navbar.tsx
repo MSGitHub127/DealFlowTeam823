@@ -1,243 +1,158 @@
-import React, { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import { useDealFlowSocket } from "../hooks/useDealFlowSocket";
-import { UserRole } from "../types";
+import React from 'react';
+import { NavLink, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard,
   Kanban,
-  ShieldCheck,
+  FileCheck2,
   Truck,
-  CreditCard,
+  Receipt,
   HeartPulse,
   BarChart3,
-  Settings,
-  ExternalLink,
-  RefreshCw,
-  Radio,
+  Sliders,
+  ChevronLeft,
+  ChevronRight,
   LogOut,
-  Menu,
-  X,
-} from "lucide-react";
+  ExternalLink,
+  Plus,
+  FileSpreadsheet
+} from 'lucide-react';
 
-interface SidebarProps {
-  onReload?: () => void;
+interface NavbarProps {
+  onReload: () => void;
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
 }
 
-export const Navbar: React.FC<SidebarProps> = ({
-  onReload,
-  isCollapsed,
-  setIsCollapsed,
-}) => {
-  const { currentUser, currentRole, isAdmin, customers, logout } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [, setLiveConnected] = useState<boolean>(true);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+export const Navbar: React.FC<NavbarProps> = ({ isCollapsed, setIsCollapsed }) => {
+  const { currentRole, currentUser, logout, isAdmin, customers } = useAuth();
 
-  useDealFlowSocket((msg) => {
-    setLiveConnected(true);
-    if (msg.message || msg.type) {
-      setToastMessage(msg.message || `Event: ${msg.type}`);
-      setTimeout(() => setToastMessage(null), 4000);
-    }
-  });
-
-  const navLinks: { name: string; path: string; icon: any; roles?: UserRole[] }[] = [
-    { name: "Dashboard", path: "/", icon: LayoutDashboard },
-    { name: "Pipeline", path: "/pipeline", icon: Kanban, roles: ["sales_rep", "sales_manager", "admin"] },
-    { name: "Approvals", path: "/approvals", icon: ShieldCheck, roles: ["sales_manager", "finance_ops", "admin"] },
-    { name: "Fulfillment", path: "/fulfillment", icon: Truck, roles: ["finance_ops", "admin"] },
-    { name: "Hybrid Billing", path: "/billing", icon: CreditCard, roles: ["finance_ops", "admin"] },
-    { name: "Deal Health", path: "/deal-health", icon: HeartPulse, roles: ["sales_manager", "admin"] },
-    { name: "Reports", path: "/reports", icon: BarChart3, roles: ["sales_manager", "finance_ops", "admin"] },
-    { name: "Admin Config", path: "/admin/rules", icon: Settings, roles: ["admin"] },
+  const navItems = [
+    { label: 'Dashboard', path: '/', icon: LayoutDashboard, roles: ['sales_rep', 'sales_manager', 'finance_ops', 'admin'] },
+    { label: 'Pipeline Board', path: '/pipeline', icon: Kanban, roles: ['sales_rep', 'sales_manager', 'admin'] },
+    { label: 'Quotations', path: '/quotes', icon: FileSpreadsheet, roles: ['sales_rep', 'sales_manager', 'admin'] },
+    { label: 'Approvals', path: '/approvals', icon: FileCheck2, roles: ['sales_manager', 'finance_ops', 'admin'] },
+    { label: 'Fulfillment', path: '/fulfillment', icon: Truck, roles: ['finance_ops', 'admin'] },
+    { label: 'Hybrid Billing', path: '/billing', icon: Receipt, roles: ['finance_ops', 'admin'] },
+    { label: 'Deal Health', path: '/deal-health', icon: HeartPulse, roles: ['sales_manager', 'admin'] },
+    { label: 'Reports', path: '/reports', icon: BarChart3, roles: ['sales_manager', 'finance_ops', 'admin'] },
+    { label: 'Rules & RBAC', path: '/admin/rules', icon: Sliders, roles: ['admin'] },
   ];
 
-  const isPortal = location.pathname.startsWith("/portal");
-
-  if (isPortal) {
-    return (
-      <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-slate-800/80 px-6 py-3 transition-all text-slate-100">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="font-['Caveat',cursive] text-2xl sm:text-3xl font-bold text-[#c9822f] tracking-wide leading-none select-none">
-                  DealFlow360
-                </span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
-                  Customer Portal Isolated View
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400">Live negotiation & electronic order confirmation</p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <span className="hidden md:inline-flex text-xs text-slate-400 font-medium">
-              🔒 Internal margins & costs strictly hidden server-side
-            </span>
-            <button
-              onClick={() => navigate("/")}
-              className="text-xs font-semibold px-3.5 py-1.5 rounded-xl border border-slate-700 bg-slate-800/90 hover:bg-slate-700 text-slate-200 shadow-sm transition"
-            >
-              Return to Workspace
-            </button>
-          </div>
-        </div>
-      </header>
-    );
-  }
+  const allowedItems = navItems.filter(item => isAdmin || item.roles.includes(currentRole));
+  const canCreateQuote = isAdmin || currentRole === 'sales_rep' || currentRole === 'sales_manager';
 
   return (
-    <>
-      <aside
-        className={`fixed top-0 left-0 h-screen bg-slate-900 text-slate-100 flex flex-col justify-between border-r border-slate-800 z-40 transition-all duration-300 p-4 ${
-          isCollapsed ? "w-20" : "w-64"
-        }`}
-      >
-        {/* Top Header & Brand with Toggle Button */}
-        <div className="flex flex-col space-y-6">
-          <div className="flex items-center justify-between px-1">
-            <Link to="/" className="flex items-center space-x-2 overflow-hidden group">
-              <div className="flex items-baseline space-x-1.5">
-                <span className="font-['Caveat',cursive] text-2xl sm:text-3xl font-bold text-[#c9822f] tracking-wide leading-none select-none transition-transform group-hover:scale-105">
-                  {isCollapsed ? "DF" : "DealFlow360"}
-                </span>
-                {!isCollapsed && (
-                  <span className="text-[9px] uppercase font-extrabold tracking-wider text-amber-400/80 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-800/50 hidden sm:inline-block">
-                    Engine
-                  </span>
-                )}
-              </div>
-            </Link>
+    <aside
+      className={`fixed top-0 left-0 h-screen bg-white border-r border-slate-200 z-40 flex flex-col justify-between transition-all duration-300 shadow-sm ${
+        isCollapsed ? 'w-20' : 'w-64'
+      }`}
+    >
+      <div>
+        {/* Brand Header */}
+        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-100">
+          {!isCollapsed && (
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-black tracking-tight text-slate-900">
+                DealFlow<span className="text-blue-600">360</span>
+              </span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 uppercase">
+                Engine
+              </span>
+            </div>
+          )}
 
-            {/* Toggle Hamburger Button */}
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors focus:outline-none"
-              title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-            >
-              {isCollapsed ? (
-                <Menu className="h-5 w-5 text-amber-400" />
-              ) : (
-                <X className="h-5 w-5 text-slate-400" />
-              )}
-            </button>
-          </div>
-
-          {/* Navigation Items (Strict Role-Based Access) */}
-          <nav className="flex flex-col space-y-1">
-            {navLinks.map((item) => {
-              if (item.roles && !isAdmin && !item.roles.includes(currentRole)) return null;
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  title={isCollapsed ? item.name : undefined}
-                  className={`flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
-                    isActive
-                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-sm"
-                      : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-                  } ${isCollapsed ? "justify-center px-0" : ""}`}
-                >
-                  <Icon className="h-4 w-4 min-w-[1rem]" />
-                  {!isCollapsed && (
-                    <span className="truncate font-semibold">{item.name}</span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition mx-auto"
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
         </div>
 
-        {/* Bottom Controls & Authentic Role Status */}
-        <div className="flex flex-col space-y-3 pt-4 border-t border-slate-800">
-          <div className={`flex items-center ${isCollapsed ? "justify-center" : "justify-between"} px-1`}>
-            <div className="flex items-center space-x-1.5 text-xs text-slate-400">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              {!isCollapsed && (
-                <span className="text-[11px] font-semibold text-slate-300">
-                  Live Sync
-                </span>
-              )}
-            </div>
-
-            {onReload && !isCollapsed && (
-              <button
-                onClick={onReload}
-                title="Reload data"
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-              </button>
-            )}
+        {/* Primary Action Button: New Quote */}
+        {canCreateQuote && (
+          <div className="p-3">
+            <Link
+              to="/quote/new"
+              className={`flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-sm transition-all py-2.5 ${
+                isCollapsed ? 'px-0' : 'px-4'
+              }`}
+              title="Create New Quote"
+            >
+              <Plus className="h-4 w-4 stroke-[2.5]" />
+              {!isCollapsed && <span>New Quotation</span>}
+            </Link>
           </div>
+        )}
 
-          {/* Customer Portal Shortcut */}
-          <button
-            onClick={() => {
-              const acme = customers.find((c) => c.company_name.includes("Acme")) || customers[0];
-              if (acme) navigate(`/portal?token=${acme.portal_token}`);
-            }}
-            title={isCollapsed ? "Customer Portal" : undefined}
-            className={`flex items-center space-x-2 text-xs py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700/70 font-semibold transition ${
-              isCollapsed ? "justify-center px-0" : "justify-center px-3"
-            }`}
-          >
-            <ExternalLink className="h-3.5 w-3.5 min-w-[0.9rem]" />
-            {!isCollapsed && <span>Customer Portal</span>}
-          </button>
+        {/* Links Navigation */}
+        <nav className="p-3 space-y-1">
+          {allowedItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition ${
+                    isActive
+                      ? 'bg-blue-50 text-blue-600 font-bold border border-blue-100'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  } ${isCollapsed ? 'justify-center' : ''}`
+                }
+                title={isCollapsed ? item.label : undefined}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {!isCollapsed && <span>{item.label}</span>}
+              </NavLink>
+            );
+          })}
+        </nav>
+      </div>
 
-          {/* Authentic Locked Role Badge */}
-          <div className="bg-slate-800/90 p-2.5 rounded-xl border border-slate-700/80">
-            {!isCollapsed && (
-              <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block mb-1">
+      {/* Footer Profile & Portal */}
+      <div className="p-3 border-t border-slate-100 space-y-2">
+        {!isCollapsed && (
+          <>
+            <a
+              href={`/portal?token=${customers[0]?.portal_token || 'test'}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 border border-slate-200 transition"
+            >
+              <div className="flex items-center gap-2">
+                <ExternalLink className="h-3.5 w-3.5 text-blue-600" />
+                <span>Customer Portal</span>
+              </div>
+            </a>
+
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                 Assigned Scope
               </span>
-            )}
-            <div className="flex items-center space-x-1.5">
-              <span className={`h-2 w-2 rounded-full ${isAdmin ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'} flex-shrink-0`} />
-              {!isCollapsed && (
-                <span className="text-xs font-bold text-white truncate">
-                  {isAdmin && 'Administrator'}
-                  {!isAdmin && currentRole === 'sales_rep' && 'Sales Rep (Alex)'}
-                  {!isAdmin && currentRole === 'sales_manager' && 'Sales Manager (Morgan)'}
-                  {!isAdmin && currentRole === 'finance_ops' && 'Finance/Ops (Taylor)'}
+              <div className="flex items-center gap-2 mt-1">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="text-xs font-bold text-slate-800 capitalize">
+                  {currentRole.replace('_', ' ')}
                 </span>
-              )}
+              </div>
             </div>
-          </div>
+          </>
+        )}
 
-          {/* Sign Out to Login */}
-          <button
-            onClick={() => {
-              logout();
-              navigate('/login');
-            }}
-            title={isCollapsed ? "Sign Out" : undefined}
-            className={`flex items-center space-x-2 text-xs py-2 rounded-xl bg-slate-800/80 hover:bg-rose-950/60 hover:border-rose-800/60 text-slate-300 hover:text-rose-300 border border-slate-700/80 font-medium transition ${
-              isCollapsed ? "justify-center px-0" : "justify-center px-3"
-            }`}
-          >
-            <LogOut className="h-3.5 w-3.5 text-rose-400 flex-shrink-0" />
-            {!isCollapsed && <span>Sign Out</span>}
-          </button>
-        </div>
-      </aside>
-
-      {/* Real-time Toast Alert */}
-      {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl border border-slate-700 text-xs font-medium flex items-center space-x-2 animate-bounce">
-          <Radio className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-    </>
+        <button
+          onClick={logout}
+          className={`w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition ${
+            isCollapsed ? 'justify-center' : ''
+          }`}
+          title="Sign Out"
+        >
+          <LogOut className="h-4 w-4" />
+          {!isCollapsed && <span>Sign Out</span>}
+        </button>
+      </div>
+    </aside>
   );
 };
