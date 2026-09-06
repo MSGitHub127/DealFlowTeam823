@@ -16,7 +16,6 @@ export const api = axios.create({
   }
 });
 
-// Attach token if present
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('dealflow_token');
   if (token) {
@@ -30,10 +29,14 @@ export const authApi = {
   getMe: () => api.get<User>('/auth/me'),
   getUsers: () => api.get<User[]>('/auth/users'),
   getCustomers: () => api.get<Customer[]>('/auth/customers'),
+  createCustomer: (data: { company_name: string; tier: string; region: string }) =>
+    api.post<Customer>('/auth/customers', data),
 };
 
 export const customersApi = {
   list: () => authApi.getCustomers(),
+  create: (data: { company_name: string; tier: string; region: string }) =>
+    authApi.createCustomer(data),
 };
 
 export const productsApi = {
@@ -100,7 +103,7 @@ export const fulfillmentApi = {
   list: (params?: any) => api.get('/fulfillment/orders', { params }),
   get: (id: string) => api.get(`/fulfillment/orders/${id}`),
   shipOrder: (orderId: string) => api.post(`/fulfillment/orders/${orderId}/ship`),
-  dispatch: (id: string, trackingNumber?: string) => api.post(`/fulfillment/orders/${id}/ship`, { tracking_number: trackingNumber }),
+  dispatch: (id: string, trackingNumber?: string) => api.post(`/fulfillment/orders/${orderId}/ship`, { tracking_number: trackingNumber }),
   consolidateBackorders: (orderId: string) => api.post(`/fulfillment/orders/${orderId}/consolidate-backorders`),
 };
 

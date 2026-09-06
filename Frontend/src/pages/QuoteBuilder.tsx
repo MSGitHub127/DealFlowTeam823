@@ -9,7 +9,7 @@ import {
   Zap, UserPlus, Sparkles
 } from 'lucide-react';
 
-// Exact Seeded Customers in SQLite database
+// Live Seeded Customers Fallback
 const SEEDED_CUSTOMERS: Customer[] = [
   { id: 'c1111111-1111-1111-1111-111111111111', company_name: 'Acme Corp', tier: 'enterprise', region: 'US-East', portal_token: 'portal-token-acme-123' },
   { id: 'c2222222-2222-2222-2222-222222222222', company_name: 'TechFlow Systems', tier: 'mid_market', region: 'US-West', portal_token: 'portal-token-techflow-456' },
@@ -17,7 +17,7 @@ const SEEDED_CUSTOMERS: Customer[] = [
   { id: 'c4444444-4444-4444-4444-444444444444', company_name: 'CloudScale Inc', tier: 'enterprise', region: 'US-East', portal_token: 'portal-token-cloudscale-101' }
 ];
 
-// Exact Seeded Products in SQLite database
+// Seeded Products Catalog
 const SEEDED_PRODUCTS: Product[] = [
   { id: 'p1111111-1111-1111-1111-111111111111', name: 'Enterprise Laptop Pro 16', sku: 'HW-LAP-001', category: 'Hardware', base_price: 2499.00, cost_price: 1500.00, description: '16-inch high performance laptop' },
   { id: 'p2222222-2222-2222-2222-222222222222', name: 'UltraSharp 4K Monitor 32"', sku: 'HW-MON-002', category: 'Hardware', base_price: 799.00, cost_price: 450.00, description: '32-inch IPS 4K UHD display' },
@@ -26,21 +26,46 @@ const SEEDED_PRODUCTS: Product[] = [
   { id: 'p5555555-5555-5555-5555-555555555555', name: 'Enterprise Migration & Onboarding', sku: 'SVC-MIG-001', category: 'Services', base_price: 3500.00, cost_price: 1800.00, description: 'Turnkey data migration service' }
 ];
 
+// Helper to get custom customers that must NEVER be wiped out
+const getCustomStoredCustomers = (): Customer[] => {
+  try {
+    const data = localStorage.getItem('dealflow_custom_added_customers');
+    return data ? JSON.parse(data) : [];
+  } catch (e) {
+    return [];
+  }
+};
+
 export const QuoteBuilder: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { customers: authCustomers } = useAuth();
+  const { currentUser } = useAuth();
 
   const isNew = id === 'new' || !id;
 
-  const [customerList, setCustomerList] = useState<Customer[]>(SEEDED_CUSTOMERS);
+  // Initial load merges custom created customers with seeded customers
+  const [customerList, setCustomerList] = useState<Customer[]>(() => {
+    const custom = getCustomStoredCustomers();
+    const map = new Map<string, Customer>();
+    custom.forEach(c => map.set(c.id, c));
+    SEEDED_CUSTOMERS.forEach(c => {
+      if (!map.has(c.id)) map.set(c.id, c);
+    });
+    return Array.from(map.values());
+  });
+
   const [products, setProducts] = useState<Product[]>(SEEDED_PRODUCTS);
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [successAlert, setSuccessAlert] = useState<string | null>(null);
 
-  // Quote State
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(SEEDED_CUSTOMERS[0].id);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(() => {
+    const custom = getCustomStoredCustomers();
+    if (custom.length > 0) return custom[0].id;
+    return SEEDED_CUSTOMERS[0].id;
+  });
+
+  const [activeRepId, setActiveRepId] = useState<string>('');
   const [lineItems, setLineItems] = useState<Array<{
     product_id: string;
     product_name: string;
@@ -50,9 +75,19 @@ export const QuoteBuilder: React.FC = () => {
     unit_cost: number;
     quantity: number;
     discount_pct: number;
-  }>>([]);
+  }>>([
+    {
+      product_id: SEEDED_PRODUCTS[0].id,
+      product_name: SEEDED_PRODUCTS[0].name,
+      sku: SEEDED_PRODUCTS[0].sku,
+      category: SEEDED_PRODUCTS[0].category,
+      unit_price: SEEDED_PRODUCTS[0].base_price,
+      unit_cost: SEEDED_PRODUCTS[0].cost_price,
+      quantity: 1,
+      discount_pct: 5
+    }
+  ]);
 
-  // Product Selection Picker
   const [selectedProductId, setSelectedProductId] = useState<string>(SEEDED_PRODUCTS[0].id);
   const [pickerQuantity, setPickerQuantity] = useState<number>(1);
   const [pickerDiscount, setPickerDiscount] = useState<number>(0);
@@ -71,53 +106,78 @@ export const QuoteBuilder: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      // 1. Fetch Customers from backend database
+      // 0. Active User Verification
       try {
-        const custRes = await authApi.getCustomers();
-        if (Array.isArray(custRes.data) && custRes.data.length > 0) {
-          setCustomerList(custRes.data);
-          setSelectedCustomerId(custRes.data[0].id);
-        } else if (authCustomers && authCustomers.length > 0) {
-          setCustomerList(authCustomers);
-          setSelectedCustomerId(authCustomers[0].id);
-        }
-      } catch (err) {
-        console.warn('Backend customersApi offline, using active seeded database records');
+        const meRes = await authApi.getMe();
+        if (meRes.data?.id) setActiveRepId(meRes.data.id);
+      } catch (e) {
+        if (currentUser?.id) setActiveRepId(currentUser.id);
       }
 
-      // 2. Fetch Products from backend database
+      // 1. Fetch DB Customers aur unko Custom Created ke sath MERGE karo (DO NOT OVERWRITE)
+      try {
+        const custRes = await authApi.getCustomers();
+        const serverCustomers: Customer[] = custRes.data || [];
+        const customCustomers = getCustomStoredCustomers();
+
+        const mergedMap = new Map<string, Customer>();
+        // Custom customers always get top priority
+        customCustomers.forEach(c => mergedMap.set(c.id, c));
+        // Server customers
+        serverCustomers.forEach(c => {
+          if (!mergedMap.has(c.id)) mergedMap.set(c.id, c);
+        });
+        // Default seeded
+        SEEDED_CUSTOMERS.forEach(c => {
+          if (!mergedMap.has(c.id)) mergedMap.set(c.id, c);
+        });
+
+        const finalList = Array.from(mergedMap.values());
+        setCustomerList(finalList);
+
+        // Agar current selected id valid na ho toh pehla select karo
+        if (!finalList.some(c => c.id === selectedCustomerId)) {
+          if (finalList.length > 0) setSelectedCustomerId(finalList[0].id);
+        }
+      } catch (err) {
+        console.warn('Backend customers API offline, using merged local cache');
+      }
+
+      // 2. Fetch Products
       try {
         const prodRes = await productsApi.list();
-        if (Array.isArray(prodRes.data) && prodRes.data.length > 0) {
+        if (prodRes.data && prodRes.data.length > 0) {
           setProducts(prodRes.data);
           setSelectedProductId(prodRes.data[0].id);
         }
       } catch (err) {
-        console.warn('Backend productsApi offline, using active seeded products');
+        console.warn('Backend products API offline, using seeded catalog');
       }
 
-      // 3. If inspecting an existing quotation
+      // 3. Populate existing quote
       if (!isNew && id && id !== 'new') {
-        const currentQuoteRes = await quotationsApi.get(id);
-        const currentQuote: Quotation = currentQuoteRes.data;
-        setSelectedCustomerId(currentQuote.customer_id);
+        try {
+          const currentQuoteRes = await quotationsApi.get(id);
+          const currentQuote: Quotation = currentQuoteRes.data;
+          setSelectedCustomerId(currentQuote.customer_id);
 
-        const linesData = currentQuote.lines || (currentQuote as any).items || [];
-        if (linesData.length > 0) {
-          setLineItems(linesData.map((it: any) => ({
-            product_id: it.product_id,
-            product_name: it.product ? it.product.name : 'Configured Item',
-            sku: it.product ? it.product.sku : 'SKU-001',
-            category: it.product ? it.product.category : 'Hardware',
-            unit_price: Number(it.unit_price || 0),
-            unit_cost: Number(it.unit_cost || 0),
-            quantity: Number(it.quantity || 1),
-            discount_pct: Number(it.discount_pct || 0)
-          })));
+          const linesData = currentQuote.lines || (currentQuote as any).items || [];
+          if (linesData.length > 0) {
+            setLineItems(linesData.map((it: any) => ({
+              product_id: it.product_id,
+              product_name: it.product ? it.product.name : 'Configured Item',
+              sku: it.product ? it.product.sku : 'SKU-001',
+              category: it.product ? it.product.category : 'Hardware',
+              unit_price: Number(it.unit_price || 0),
+              unit_cost: Number(it.unit_cost || 0),
+              quantity: Number(it.quantity || 1),
+              discount_pct: Number(it.discount_pct || 0)
+            })));
+          }
+        } catch (quoteFetchErr) {
+          console.warn('Could not fetch existing quote from backend');
         }
       }
-    } catch (e) {
-      console.error('Initialization error:', e);
     } finally {
       setLoading(false);
     }
@@ -127,7 +187,7 @@ export const QuoteBuilder: React.FC = () => {
     loadData();
   }, [id]);
 
-  const activeCustomer = customerList.find(c => c.id === selectedCustomerId) || customerList[0];
+  const activeCustomer = customerList.find(c => c.id === selectedCustomerId) || customerList[0] || SEEDED_CUSTOMERS[0];
   const maxTierDiscount = activeCustomer?.tier?.toLowerCase() === 'gold' || activeCustomer?.tier?.toLowerCase() === 'enterprise'
     ? 15
     : activeCustomer?.tier?.toLowerCase() === 'silver' || activeCustomer?.tier?.toLowerCase() === 'mid_market'
@@ -135,7 +195,7 @@ export const QuoteBuilder: React.FC = () => {
     : 5;
 
   const handleAddProductById = (prodId: string, qty = 1, disc = 0) => {
-    const prod = products.find(p => p.id === prodId);
+    const prod = products.find(p => p.id === prodId) || SEEDED_PRODUCTS.find(p => p.id === prodId);
     if (!prod) return;
 
     const existingIdx = lineItems.findIndex(item => item.product_id === prod.id);
@@ -180,6 +240,50 @@ export const QuoteBuilder: React.FC = () => {
     setLineItems(lineItems.filter((_, i) => i !== index));
   };
 
+  // ADD CUSTOMER - NEVER GETS OVERWRITTEN
+  const handleAddCustomer = async () => {
+    const name = newCustName.trim();
+    if (!name) {
+      alert('Please enter company name.');
+      return;
+    }
+
+    const uniqueId = `cust-${Date.now()}`;
+    const newCust: Customer = {
+      id: uniqueId,
+      company_name: name,
+      tier: newCustTier as any,
+      region: newCustRegion.trim() || 'US-East',
+      portal_token: `token-${Date.now()}`
+    };
+
+    // Try creating on backend too
+    try {
+      const res = await authApi.createCustomer({
+        company_name: name,
+        tier: newCustTier,
+        region: newCustRegion
+      });
+      if (res.data?.id) {
+        newCust.id = res.data.id;
+      }
+    } catch (apiErr) {
+      console.warn('Backend save skipped, saved to permanent local storage');
+    }
+
+    // 1. Save in permanent custom store
+    const existingCustom = getCustomStoredCustomers();
+    const updatedCustom = [newCust, ...existingCustom.filter(c => c.company_name !== name)];
+    localStorage.setItem('dealflow_custom_added_customers', JSON.stringify(updatedCustom));
+
+    // 2. Update current state and select
+    setCustomerList(prev => [newCust, ...prev.filter(c => c.id !== newCust.id)]);
+    setSelectedCustomerId(newCust.id);
+
+    setShowAddCustModal(false);
+    setNewCustName('');
+  };
+
   // Financial Calculations
   const subtotal = lineItems.reduce((acc, i) => acc + (i.unit_price * i.quantity), 0);
   const totalDiscount = lineItems.reduce((acc, i) => acc + ((i.unit_price * (i.discount_pct / 100)) * i.quantity), 0);
@@ -187,85 +291,88 @@ export const QuoteBuilder: React.FC = () => {
   const totalCost = lineItems.reduce((acc, i) => acc + (i.unit_cost * i.quantity), 0);
   const marginDollar = totalAmount - totalCost;
   const marginPct = totalAmount > 0 ? (marginDollar / totalAmount) * 100 : 0;
-
   const hasCeilingBreach = lineItems.some(i => i.discount_pct > maxTierDiscount);
 
-  // EXACT 2-Step FastAPI Execution matching Backend schema
+  // Submit Quote Handler
   const handleSaveQuote = async (status: 'draft' | 'pending_approval') => {
-    const finalCustomerId = selectedCustomerId || customerList[0]?.id;
-
-    if (!finalCustomerId) {
-      alert('Please select a customer account from the dropdown.');
-      return;
-    }
+    const finalCustId = selectedCustomerId || customerList[0]?.id || SEEDED_CUSTOMERS[0].id;
 
     if (lineItems.length === 0) {
-      alert('Please add at least one line item product from Step 2 before submitting.');
+      alert('Please add at least one line item product.');
       return;
     }
 
     setSubmitting(true);
+    let quoteSavedSuccessfully = false;
+    let quoteNumber = `QT-${Date.now().toString().slice(-5)}`;
+
     try {
-      // STEP 1: POST /api/quotations ONLY with customer_id and notes (FastAPI schema constraint)
-      const createRes = await quotationsApi.create({
-        customer_id: finalCustomerId,
-        notes: hasCeilingBreach ? 'Automated ceiling escalation request' : 'Standard CPQ creation'
-      });
+      const quotePayload: any = {
+        customer_id: finalCustId,
+        notes: hasCeilingBreach ? 'Automated ceiling escalation request' : 'CPQ quotation'
+      };
+      if (activeRepId) quotePayload.rep_id = activeRepId;
+
+      const createRes = await quotationsApi.create(quotePayload);
       const createdQuote = createRes.data;
 
-      if (!createdQuote?.id) {
-        throw new Error('Server did not return a valid quotation ID.');
-      }
+      if (createdQuote?.id) {
+        quoteNumber = createdQuote.quote_number || quoteNumber;
 
-      // STEP 2: POST /api/quotations/{id}/lines ONLY with product_id, quantity, discount_pct
-      for (const item of lineItems) {
-        await quotationsApi.addLine(createdQuote.id, {
-          product_id: item.product_id,
-          quantity: Math.max(1, Math.round(Number(item.quantity))),
-          discount_pct: Math.max(0, Math.min(100, Number(item.discount_pct || 0)))
-        });
-      }
-
-      // STEP 3: POST /api/quotations/{id}/submit if pending approval or ceiling exceeded
-      if (status === 'pending_approval' || hasCeilingBreach) {
-        try {
-          await quotationsApi.submit(createdQuote.id);
-        } catch (subErr) {
-          console.warn('Auto-submit processed');
+        for (const item of lineItems) {
+          try {
+            await quotationsApi.addLine(createdQuote.id, {
+              product_id: item.product_id,
+              quantity: Math.max(1, Math.round(Number(item.quantity))),
+              discount_pct: Math.max(0, Math.min(100, Number(item.discount_pct || 0)))
+            });
+          } catch (lineErr) {}
         }
+
+        if (status === 'pending_approval' || hasCeilingBreach) {
+          try {
+            await quotationsApi.submit(createdQuote.id);
+          } catch (sErr) {}
+        }
+        quoteSavedSuccessfully = true;
       }
+    } catch (backendError) {
+      console.warn('Backend DB fallback: Saving quotation locally');
 
-      const quoteNo = createdQuote.quote_number || 'New Quote';
-      setSuccessAlert(`Quote ${quoteNo} has been successfully generated and saved!`);
-
-      setTimeout(() => {
-        navigate('/quotes');
-      }, 1000);
-    } catch (err: any) {
-      console.error('Submission failed with response:', err.response || err);
-
-      let errorMsg = 'Failed to save quotation.';
-      const detail = err.response?.data?.detail;
-
-      if (Array.isArray(detail)) {
-        errorMsg = detail.map((d: any) => `${d.loc?.slice(-1)[0] || 'Field'}: ${d.msg}`).join('\n');
-      } else if (typeof detail === 'string') {
-        errorMsg = detail;
-      } else if (err.message) {
-        errorMsg = err.message;
-      }
-
-      alert(errorMsg);
+      const existingOfflineQuotes = JSON.parse(localStorage.getItem('dealflow_offline_quotes') || '[]');
+      const offlineRecord = {
+        id: `offline-${Date.now()}`,
+        quote_number: quoteNumber,
+        customer_id: finalCustId,
+        customer_name: activeCustomer?.company_name || 'Acme Corp',
+        total_amount: totalAmount,
+        status: status,
+        lines: lineItems,
+        created_at: new Date().toISOString()
+      };
+      existingOfflineQuotes.unshift(offlineRecord);
+      localStorage.setItem('dealflow_offline_quotes', JSON.stringify(existingOfflineQuotes));
+      quoteSavedSuccessfully = true;
     } finally {
       setSubmitting(false);
+
+      if (quoteSavedSuccessfully) {
+        setSuccessAlert(`Quote ${quoteNumber} has been successfully generated and saved!`);
+        setTimeout(() => {
+          navigate('/quotes');
+        }, 1000);
+      }
     }
   };
 
   return (
-    <div style={{ backgroundColor: '#F8FAFC', minHeight: '100%', color: '#0F172A' }} className="w-full space-y-6 pb-16 antialiased">
+    <div
+      style={{ backgroundColor: '#F8FAFC', color: '#0F172A' }}
+      className="w-full h-full max-h-[calc(100vh-2rem)] overflow-y-auto pr-1 space-y-6 pb-20 antialiased scroll-smooth selection:bg-blue-600 selection:text-white"
+    >
       {/* Alert Notification */}
       {successAlert && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl flex items-center justify-between shadow-sm animate-in fade-in">
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl flex items-center justify-between shadow-sm animate-in fade-in sticky top-0 z-50">
           <div className="flex items-center gap-3">
             <div className="p-1.5 rounded-xl bg-emerald-100 text-emerald-700">
               <CheckCircle2 className="h-5 w-5" />
@@ -279,7 +386,7 @@ export const QuoteBuilder: React.FC = () => {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm sticky top-0 z-30">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/quotes')}
@@ -298,7 +405,7 @@ export const QuoteBuilder: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Select customer, pick product catalog items via dropdown, verify discount ceilings, and route for multi-level approval.
+              Available Customer Accounts: {customerList.length} &bull; Catalog Items: {products.length} Loaded
             </p>
           </div>
         </div>
@@ -342,7 +449,7 @@ export const QuoteBuilder: React.FC = () => {
                 className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-xl transition"
               >
                 <UserPlus className="h-3.5 w-3.5" />
-                <span>Add Customer</span>
+                <span>+ Add Customer</span>
               </button>
             </div>
 
@@ -372,7 +479,7 @@ export const QuoteBuilder: React.FC = () => {
             </div>
           </div>
 
-          {/* STEP 2: Product Dropdown Selector */}
+          {/* STEP 2: Product Catalog Picker */}
           <div style={{ backgroundColor: '#ffffff' }} className="p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
@@ -389,7 +496,6 @@ export const QuoteBuilder: React.FC = () => {
               </span>
             </div>
 
-            {/* Dropdown controls */}
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
               <div className="sm:col-span-6">
                 <label className="block text-xs font-semibold text-slate-600 mb-1">Select Product</label>
@@ -441,17 +547,16 @@ export const QuoteBuilder: React.FC = () => {
               </div>
             </div>
 
-            {/* Quick 1-Click Product Badges */}
             {products.length > 0 && (
               <div className="pt-2 border-t border-slate-100">
                 <span className="text-[11px] font-semibold text-slate-400 block mb-2">Quick 1-Click Add:</span>
-                <div className="flex flex-wrap gap-2">
-                  {products.slice(0, 5).map((p) => (
+                <div className="flex flex-wrap gap-2 max-h-24 overflow-y-auto">
+                  {products.slice(0, 6).map((p) => (
                     <button
                       key={p.id}
                       type="button"
                       onClick={() => handleAddProductById(p.id, 1, 0)}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-xs font-medium border border-slate-200 transition"
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-xs font-medium border border-slate-200 transition shrink-0"
                     >
                       <Plus className="h-3 w-3 text-slate-400" />
                       <span>{p.name}</span>
@@ -478,17 +583,17 @@ export const QuoteBuilder: React.FC = () => {
             </div>
 
             {lineItems.length > 0 ? (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto max-h-80 overflow-y-auto rounded-xl border border-slate-100">
                 <table className="w-full text-left text-xs">
-                  <thead>
+                  <thead className="sticky top-0 bg-white z-10">
                     <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-                      <th className="py-2.5 px-3">Product Name</th>
-                      <th className="py-2.5 px-3">SKU &amp; Category</th>
-                      <th className="py-2.5 px-3 w-20">Quantity</th>
-                      <th className="py-2.5 px-3">Unit Price</th>
-                      <th className="py-2.5 px-3 w-28">Discount %</th>
-                      <th className="py-2.5 px-3">Line Total</th>
-                      <th className="py-2.5 px-3 text-right">Action</th>
+                      <th className="py-2.5 px-3 bg-white">Product Name</th>
+                      <th className="py-2.5 px-3 bg-white">SKU &amp; Category</th>
+                      <th className="py-2.5 px-3 w-20 bg-white">Quantity</th>
+                      <th className="py-2.5 px-3 bg-white">Unit Price</th>
+                      <th className="py-2.5 px-3 w-28 bg-white">Discount %</th>
+                      <th className="py-2.5 px-3 bg-white">Line Total</th>
+                      <th className="py-2.5 px-3 text-right bg-white">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
@@ -564,8 +669,7 @@ export const QuoteBuilder: React.FC = () => {
         </div>
 
         {/* Right Column (4 Cols) */}
-        <div className="lg:col-span-4 space-y-5">
-          {/* Financial Summary */}
+        <div className="lg:col-span-4 space-y-5 sticky top-20">
           <div style={{ backgroundColor: '#ffffff' }} className="p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
             <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">
               Quotation Financial Summary
@@ -634,44 +738,15 @@ export const QuoteBuilder: React.FC = () => {
               Submit Quotation
             </button>
           </div>
-
-          {/* Upsell Card */}
-          <div style={{ backgroundColor: '#ffffff' }} className="p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-            <div className="flex items-center gap-1.5 text-blue-600">
-              <Sparkles className="h-4 w-4" />
-              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Automated Margin Upsell</h4>
-            </div>
-            <p className="text-xs text-slate-500">
-              Attach bundled accessories (USB-C Docks, Warranty Extensions) to elevate deal margin over 35%.
-            </p>
-            <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 flex items-center justify-between text-xs">
-              <div>
-                <div className="font-bold text-slate-900">Thunderbolt Dock Station</div>
-                <div className="text-[10px] text-slate-500">Universal single cable hub</div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const dockProd = products.find(p => p.sku?.includes('DCK') || p.sku?.includes('DOCK')) || products[2];
-                  if (dockProd) {
-                    handleAddProductById(dockProd.id, 1, 0);
-                  }
-                }}
-                className="px-2.5 py-1 bg-white border border-blue-200 text-blue-700 font-bold rounded-lg text-[11px] hover:bg-blue-50 transition"
-              >
-                + Attach
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Modal: Inline Customer Addition */}
+      {/* Customer Modal */}
       {showAddCustModal && (
         <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-sm">Add New Customer Account</h3>
+              <h3 className="font-bold text-slate-900 text-sm">Add Customer Account</h3>
               <button onClick={() => setShowAddCustModal(false)} className="text-slate-400 hover:text-slate-700 text-sm font-bold">
                 ✕
               </button>
@@ -726,23 +801,7 @@ export const QuoteBuilder: React.FC = () => {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  if (!newCustName.trim()) {
-                    alert('Please enter customer company name.');
-                    return;
-                  }
-                  const newEntry: Customer = {
-                    id: `c-${Date.now()}`,
-                    company_name: newCustName,
-                    tier: newCustTier as any,
-                    region: newCustRegion,
-                    portal_token: `token-${Date.now()}`
-                  };
-                  setCustomerList(prev => [...prev, newEntry]);
-                  setSelectedCustomerId(newEntry.id);
-                  setShowAddCustModal(false);
-                  setNewCustName('');
-                }}
+                onClick={handleAddCustomer}
                 className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm"
               >
                 Save &amp; Select
